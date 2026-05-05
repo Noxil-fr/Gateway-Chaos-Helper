@@ -1430,17 +1430,12 @@ div.client-dropdown-option {
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
 }
-div.client-dropdown-option:first-child {
-  color: var(--text3);
-  font-style: italic;
-}
 div.client-dropdown-option:hover {
   background: rgba(255,255,255,0.05);
   color: var(--text);
 }
 div.client-dropdown-option.selected {
-  color: var(--green);
-  background: var(--green-dim);
+  color: var(--text);
 }
 
 div.gateway-or-separator {

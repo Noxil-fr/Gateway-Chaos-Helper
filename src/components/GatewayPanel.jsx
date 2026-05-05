@@ -72,7 +72,6 @@ export default function GatewayPanel() {
               value={selectedClient}
               onChange={(val) => { setSelectedClient(val); setSubscriberInput('') }}
               disabled={clients.length === 0}
-              placeholder="— Select a client —"
             />
           </div>
 
