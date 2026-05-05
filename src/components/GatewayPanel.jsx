@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { fetchSubscriberData, fetchClients } from '../services/api'
+import { fetchSubscriberData, fetchClientData, fetchClients } from '../services/api'
 import CustomSelect from './CustomSelect'
 
 export default function GatewayPanel() {
   const [clients, setClients] = useState([])
   const [subscriberInput, setSubscriberInput] = useState('')
   const [selectedClient, setSelectedClient] = useState('')
+
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -21,20 +22,21 @@ export default function GatewayPanel() {
     }
   }, [results])
 
-  const activeSubscriber = subscriberInput.trim() ||
-    (clients.find(c => c.name === selectedClient)?.subscriber || '')
-
   const handleCheck = async () => {
-    if (!activeSubscriber || loading) return
+    if (loading) return
+    if (!subscriberInput.trim() && !selectedClient) return
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchSubscriberData(activeSubscriber)
-      setResults(prev => [...prev, {
-        client: selectedClient || activeSubscriber,
-        subscriberID: activeSubscriber,
-        ...data,
-      }])
+      let data, label
+      if (selectedClient) {
+        data = await fetchClientData(selectedClient)
+        label = selectedClient
+      } else {
+        data = await fetchSubscriberData(subscriberInput.trim())
+        label = subscriberInput.trim()
+      }
+      setResults(prev => [...prev, { client: label, ...data }])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -68,7 +70,7 @@ export default function GatewayPanel() {
           <div className="field">
             <label>Client</label>
             <CustomSelect
-              options={clients.map(c => ({ value: c.name, label: c.name }))}
+              options={clients.map(c => ({ value: c, label: c }))}
               value={selectedClient}
               onChange={(val) => { setSelectedClient(val); setSubscriberInput('') }}
               disabled={clients.length === 0}
@@ -78,7 +80,7 @@ export default function GatewayPanel() {
           <button
             className="search-btn"
             onClick={handleCheck}
-            disabled={!activeSubscriber || loading}
+            disabled={(!subscriberInput.trim() && !selectedClient) || loading}
           >
             {loading ? 'Searching...' : 'Check 🔍'}
           </button>
@@ -99,7 +101,6 @@ export default function GatewayPanel() {
                   <div key={idx} className="terminal-result-block">
                     {idx > 0 && <div style={{ borderTop: '1px solid #2a2a2a', margin: '0.3rem 0' }} />}
                     <div><span className="terminal-key">Client&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span className="terminal-value">{r.client}</span></div>
-                    <div><span className="terminal-key">Subscriber&nbsp;&nbsp;</span><span className="terminal-value">{r.subscriberID}</span></div>
                     <div><span className="terminal-key">Version&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span className="terminal-value">{r.version}</span></div>
                     <div><span className="terminal-key">DMS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span className="terminal-value">{r.dms}</span></div>
                     <div><span className="terminal-key">Provider&nbsp;&nbsp;&nbsp;&nbsp;</span><span className="terminal-value">{r.provider}</span></div>

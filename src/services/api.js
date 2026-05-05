@@ -5,6 +5,13 @@ export async function fetchSubscriberData(subscriber) {
   return data
 }
 
+export async function fetchClientData(clientName) {
+  const response = await fetch(`/api/gateway?client=${encodeURIComponent(clientName)}`)
+  const data = await response.json()
+  if (!response.ok) throw new Error(data.error || `HTTP error: ${response.status}`)
+  return data
+}
+
 export async function fetchClients() {
   const response = await fetch('/api/clients')
   const data = await response.json()

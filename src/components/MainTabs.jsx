@@ -1,6 +1,6 @@
 const TABS = [
   { id: 'analyzer', label: 'Log Analyzer' },
-  { id: 'gateway', label: 'DMS Gateway' },
+  { id: 'gateway', label: 'Gateway version' },
 ]
 
 export default function MainTabs({ activeTab, onTabChange }) {

@@ -131,7 +131,7 @@ export default function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1>Gateway Chaos Helper <span className="version">v1.1</span><button className="patchnote-btn" onClick={() => setShowPatchNote(true)}>Patch note</button></h1>
+        <h1>Gateway Chaos Helper <span className="version">v1.1</span><button className="patchnote-btn" onClick={() => setShowPatchNote(true)}>About</button></h1>
       </div>
 
       <FileUploader onParsed={handleParsed} />
