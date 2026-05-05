@@ -1,49 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { fetchSubscriberData, fetchClients } from '../services/api'
-
-function ClientDropdown({ clients, value, onChange, disabled }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef()
-
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  return (
-    <div className="client-dropdown" ref={ref}>
-      <button
-        className={`client-dropdown-trigger ${open ? 'open' : ''}`}
-        onClick={() => !disabled && setOpen(!open)}
-        disabled={disabled}
-        type="button"
-      >
-        <span>{value || '— Select a client —'}</span>
-        <span className="client-dropdown-arrow">▾</span>
-      </button>
-      {open && (
-        <div className="client-dropdown-list">
-          <div
-            className={`client-dropdown-option ${value === '' ? 'selected' : ''}`}
-            onMouseDown={() => { onChange(''); setOpen(false) }}
-          >
-            — Select a client —
-          </div>
-          {clients.map(c => (
-            <div
-              key={c.subscriber}
-              className={`client-dropdown-option ${value === c.name ? 'selected' : ''}`}
-              onMouseDown={() => { onChange(c.name); setOpen(false) }}
-            >
-              {c.name}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
+import CustomSelect from './CustomSelect'
 
 export default function GatewayPanel() {
   const [clients, setClients] = useState([])
@@ -110,11 +67,12 @@ export default function GatewayPanel() {
 
           <div className="field">
             <label>Client</label>
-            <ClientDropdown
-              clients={clients}
+            <CustomSelect
+              options={clients.map(c => ({ value: c.name, label: c.name }))}
               value={selectedClient}
               onChange={(val) => { setSelectedClient(val); setSubscriberInput('') }}
               disabled={clients.length === 0}
+              placeholder="— Select a client —"
             />
           </div>
 

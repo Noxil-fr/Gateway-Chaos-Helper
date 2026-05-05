@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import CustomSelect from './CustomSelect'
 
 const QUERY_TYPES = [
   { value: 'SetRepairOrder', label: 'SetRepairOrder - RO' },
@@ -262,9 +263,11 @@ const handleKey = (e) => { if (e.key === 'Enter') handleApiSearch() }
           <div className="search-block block-query" style={{ height: '100%' }}>
             <div className="field">
               <label>Query type</label>
-              <select className="search-select" value={queryType} onChange={(e) => setQueryType(e.target.value)}>
-                {QUERY_TYPES.map((q) => <option key={q.value} value={q.value}>{q.label}</option>)}
-              </select>
+              <CustomSelect
+                options={QUERY_TYPES}
+                value={queryType}
+                onChange={setQueryType}
+              />
             </div>
 
             <div className="field">
@@ -295,15 +298,11 @@ const handleKey = (e) => { if (e.key === 'Enter') handleApiSearch() }
             <div className="search-input-row">
               <div className="field">
                 <label>Search by</label>
-                <select
-                  className="search-select"
+                <CustomSelect
+                  options={getSearchModes(queryType)}
                   value={searchMode}
-                  onChange={(e) => setSearchMode(e.target.value)}
-                >
-                  {getSearchModes(queryType).map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
+                  onChange={setSearchMode}
+                />
               </div>
 
               <div className="field search-value-field">
