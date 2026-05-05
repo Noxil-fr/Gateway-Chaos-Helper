@@ -1,14 +1,31 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 
 export default function CustomSelect({ options, value, onChange, disabled, placeholder }) {
   const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
   const ref = useRef()
+  const inputRef = useRef()
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  useEffect(() => {
+    if (open && inputRef.current) inputRef.current.focus()
+    if (!open) setSearch('')
+  }, [open])
+
+  const sorted = useMemo(() =>
+    [...options].sort((a, b) => a.label.localeCompare(b.label)),
+    [options]
+  )
+
+  const filtered = useMemo(() =>
+    sorted.filter(o => o.label.toLowerCase().includes(search.toLowerCase())),
+    [sorted, search]
+  )
 
   const selected = options.find(o => o.value === value)
 
@@ -25,23 +42,38 @@ export default function CustomSelect({ options, value, onChange, disabled, place
       </button>
       {open && (
         <div className="client-dropdown-list">
-          {placeholder && (
-            <div
-              className={`client-dropdown-option ${!value ? 'selected' : ''}`}
-              onMouseDown={() => { onChange(''); setOpen(false) }}
-            >
-              {placeholder}
-            </div>
-          )}
-          {options.map(o => (
-            <div
-              key={o.value}
-              className={`client-dropdown-option ${value === o.value ? 'selected' : ''}`}
-              onMouseDown={() => { onChange(o.value); setOpen(false) }}
-            >
-              {o.label}
-            </div>
-          ))}
+          <div className="client-dropdown-search">
+            <input
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..."
+              onMouseDown={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div className="client-dropdown-scroll">
+            {placeholder && !search && (
+              <div
+                className={`client-dropdown-option ${!value ? 'selected' : ''}`}
+                onMouseDown={() => { onChange(''); setOpen(false) }}
+              >
+                {placeholder}
+              </div>
+            )}
+            {filtered.length === 0 && (
+              <div className="client-dropdown-empty">No results</div>
+            )}
+            {filtered.map(o => (
+              <div
+                key={o.value}
+                className={`client-dropdown-option ${value === o.value ? 'selected' : ''}`}
+                onMouseDown={() => { onChange(o.value); setOpen(false) }}
+              >
+                {o.label}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
