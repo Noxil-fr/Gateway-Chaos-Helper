@@ -1371,6 +1371,78 @@ div.search-col-divider {
   margin: 0.1rem 0;
 }
 
+/* ── Client dropdown custom ──────────────────────────────── */
+div.client-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+button.client-dropdown-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.72rem 0.9rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.16s, background 0.16s;
+}
+button.client-dropdown-trigger:hover {
+  background: rgba(255,255,255,0.035);
+  border-color: var(--border2);
+}
+button.client-dropdown-trigger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+button.client-dropdown-trigger.open {
+  border-color: var(--focus-ring);
+}
+
+span.client-dropdown-arrow {
+  color: var(--text3);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+div.client-dropdown-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  z-index: 50;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+div.client-dropdown-option {
+  padding: 0.55rem 0.9rem;
+  font-size: 0.88rem;
+  color: var(--text2);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+div.client-dropdown-option:first-child {
+  color: var(--text3);
+  font-style: italic;
+}
+div.client-dropdown-option:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+}
+div.client-dropdown-option.selected {
+  color: var(--green);
+  background: var(--green-dim);
+}
+
 div.gateway-or-separator {
   display: flex;
   align-items: center;
