@@ -1,0 +1,108 @@
+git add .
+git commit -m "description de la modif"
+git push
+
+
+
+
+Je souhaite faire évoluer mon interface en introduisant un système d’onglets, en isolant certaines fonctionnalités, et en améliorant l’ergonomie du système de recherche.
+
+1. Mise en place d’un système d’onglets
+Positionnement
+
+Ajouter des onglets :
+
+Sous le bloc “Drop your .log”
+Au-dessus du bloc “Query type”
+Onglet 1 (par défaut)
+Conserver toutes les fonctionnalités existantes
+Exclure uniquement la partie DMS Gateway version
+Onglet 2 : DMS Gateway version
+Éléments à supprimer
+Query type
+Show errors
+Convert to JSON format
+Bloc de recherche principal
+Éléments à conserver
+Terminal
+Champs de recherche
+Système de recherche (Onglet 2)
+Option 1
+Champ texte libre permettant de saisir un subscriber
+Séparateur visuel
+Ajouter un espacement + séparateur clair :
+--- OR ---
+Option 2
+Liste déroulante de clients
+Chaque client correspond à un subscriber prédéfini. La liste des subscriber devra être sécurisé, peut être en backend grace à Vercel ?
+La liste sera définie ultérieurement
+2. Affichage des résultats
+
+Les résultats doivent être affichés dans le terminal avec les champs suivants :
+
+Client
+subscriberID
+version
+dms
+provider
+3. Gestion du terminal
+
+Le comportement du terminal doit être indépendant entre les onglets.
+
+Onglet 2
+Terminal vide à l’arrivée
+Lors d’une recherche :
+Les résultats s’affichent
+Les recherches successives s’accumulent
+Retour à l’onglet 1
+Le terminal doit être restauré exactement dans son état précédent
+4. Architecture attendue
+
+Le système doit permettre :
+
+soit un terminal distinct par onglet
+soit un terminal avec plusieurs instances indépendantes
+
+L’objectif est d’assurer une indépendance complète des états entre les onglets.
+
+5. Ajout d’un bouton “Patch note”
+Emplacement
+À côté de “v1.0” (près du titre du site)
+Comportement
+Bouton discret nommé : Patch note
+Ouvre une modale
+Contenu
+La modale contiendra des informations sur les évolutions du programme
+Le contenu sera ajouté ultérieurement
+6. Refonte du bloc de saisie (Onglet 1)
+Situation actuelle
+Des boutons permettent de sélectionner un type d’entrée
+Un champ s’adapte en fonction du bouton
+Nouvelle approche
+Remplacement des boutons
+Utiliser une liste déroulante (dropdown) à gauche
+Contenu du dropdown
+Dépend du Query type sélectionné
+Exemple de valeurs :
+internet N
+plate N
+RO N
+etc.
+Champ de saisie
+Positionné à droite du dropdown
+Doit être dynamique en fonction de l’option sélectionnée
+Contraintes
+Le contenu du dropdown doit varier selon le Query type
+Le champ doit s’adapter (type, comportement, etc.)
+
+
+
+Je te laisse :
+
+choisir l’approche technique la plus propre
+structurer la solution
+proposer une implémentation claire et maintenable
+- On le fait pas à pas, étape par étape, peut être que je ferai en plusieurs sessions de travail. 
+- Ne commence pas le code tout de suite, fait d'abord une feuille de route
+- ne génère pas de fichier, donne moi les modifications à faire.
+- ci joint le SearchBar que j'ai un peu modifié pour les API.
