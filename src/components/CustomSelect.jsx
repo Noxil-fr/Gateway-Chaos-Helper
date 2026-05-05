@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 
-export default function CustomSelect({ options, value, onChange, disabled, placeholder }) {
+export default function CustomSelect({ options, value, onChange, disabled, placeholder, searchable = false }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const ref = useRef()
@@ -42,16 +42,18 @@ export default function CustomSelect({ options, value, onChange, disabled, place
       </button>
       {open && (
         <div className="client-dropdown-list">
-          <div className="client-dropdown-search">
-            <input
-              ref={inputRef}
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
-              onMouseDown={(e) => e.stopPropagation()}
-            />
-          </div>
+          {searchable && (
+            <div className="client-dropdown-search">
+              <input
+                ref={inputRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                onMouseDown={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
           <div className="client-dropdown-scroll">
             {placeholder && !search && (
               <div

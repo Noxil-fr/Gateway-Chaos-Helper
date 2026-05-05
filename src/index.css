@@ -110,6 +110,7 @@ div.field label {
   text-transform: none;
   letter-spacing: 0;
   font-weight: 600;
+  text-align: center;
 }
 
 div.field input {
@@ -1402,8 +1403,8 @@ div.gateway-terminal-col {
 
 div.search-col-divider {
   border: none;
-  border-top: 1px solid var(--border);
-  margin: 0.1rem 0;
+  border-top: 2px solid var(--border2);
+  margin: 0.6rem 0;
 }
 
 /* ── Client dropdown custom ──────────────────────────────── */
