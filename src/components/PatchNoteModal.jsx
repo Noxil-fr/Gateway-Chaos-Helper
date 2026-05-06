@@ -1,11 +1,20 @@
 import { useState } from 'react'
 
 const INTRO = {
-  fr: "Bienvenue !\n\nCe programme, créé par le support DMS France, a pour vocation de faciliter la lecture des logs de la DMS Gateway, de formater des requêtes JSON brutes dans un format agréable à lire, ou encore de consulter la version de la DMS Gateway installée chez les clients.\n\nN'hésitez pas à signaler un bug ou à suggérer une amélioration : antoine.lancelot@nextlane.com\n\nMerci !",
-  en: "Welcome!\n\nThis program, created by the DMS France support team, is designed to facilitate the reading of DMS Gateway logs, format raw JSON requests into a easy-to-read format, and check the version of the DMS Gateway installed at client sites.\n\nFeel free to report a bug or suggest an improvement: antoine.lancelot@nextlane.com\n\nThank you!",
+  fr: "Bienvenue !\n\nCe programme, créé par le support DMS France, a pour vocation de faciliter la lecture des logs de la DMS Gateway, de formater des requêtes JSON brutes dans un format agréable à lire, ou encore de consulter la version de la DMS Gateway installée chez les clients.\n\n🔒 Confidentialité : aucune information n'est stockée. Les fichiers importés sont chargés dans le navigateur uniquement le temps de la lecture — rien n'est conservé, envoyé ou partagé.\n\nN'hésitez pas à signaler un bug ou à suggérer une amélioration : antoine.lancelot@nextlane.com\n\nMerci !",
+  en: "Welcome!\n\nThis program, created by the DMS France support team, is designed to facilitate the reading of DMS Gateway logs, format raw JSON requests into a easy-to-read format, and check the version of the DMS Gateway installed at client sites.\n\n🔒 Privacy: no information is stored. Imported files are loaded in the browser only for the duration of the session — nothing is retained, sent, or shared.\n\nFeel free to report a bug or suggest an improvement: antoine.lancelot@nextlane.com\n\nThank you!",
 }
 
 const NOTES = [
+  {
+    version: 'v1.2',
+    entries: [
+      {
+        fr: "Deux nouvelles options dans le menu \"Search by\" : afficher une requête aléatoire, ou rechercher par numéro interne du client (Codigo Cliente).",
+        en: "Two new options in the \"Search by\" menu: display a random request, or search by internal client number (Codigo Cliente).",
+      },
+    ],
+  },
   {
     version: 'v1.1',
     entries: [
@@ -33,7 +42,7 @@ export default function PatchNoteModal({ onClose }) {
     <div className="popup-overlay" onClick={onClose}>
       <div className="popup popup-patchnote" onClick={(e) => e.stopPropagation()}>
         <div className="popup-patchnote-header">
-          <span className="popup-patchnote-title">About</span>
+          <span className="popup-patchnote-title">Read me</span>
           <div className="patchnote-lang-toggle">
             <button className={`toggle-btn ${lang === 'en' ? 'active' : ''}`} onClick={() => setLang('en')}>English</button>
             <button className={`toggle-btn ${lang === 'fr' ? 'active' : ''}`} onClick={() => setLang('fr')}>Français</button>

@@ -131,52 +131,55 @@ export default function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1>Gateway Chaos Helper <span className="version">v1.1</span><button className="patchnote-btn" onClick={() => setShowPatchNote(true)}>About</button></h1>
+        <h1>Gateway Chaos Helper <span className="version">v1.2</span><button className="patchnote-btn" onClick={() => setShowPatchNote(true)}>Read me</button></h1>
       </div>
 
       <FileUploader onParsed={handleParsed} />
 
       <MainTabs activeTab={mainTab} onTabChange={setMainTab} />
 
-      {mainTab === 'analyzer' && (
-        <>
-          <SearchBar
-            requests={requests}
-            onResult={handleResult}
-            totalCount={totalCount}
-            logStart={logStart}
-            logEnd={logEnd}
-            lastResult={lastResult}
-            onShowErrorsChange={setShowErrors}
-            failedCount={failedCount}
-            errorCount={errorCount}
-            onOpenRawRequest={openRawRequestInTab}
-          />
+      <div style={{ display: mainTab === 'analyzer' ? 'flex' : 'none', flexDirection: 'column', gap: '1.5rem' }}>
+        <SearchBar
+          requests={requests}
+          onResult={handleResult}
+          totalCount={totalCount}
+          logStart={logStart}
+          logEnd={logEnd}
+          lastResult={lastResult}
+          onShowErrorsChange={setShowErrors}
+          failedCount={failedCount}
+          errorCount={errorCount}
+          onOpenRawRequest={openRawRequestInTab}
+        />
 
-          <ErrorPanel
-            requests={requests}
-            onOpenRequest={openRequestInTab}
-            visible={showErrors}
-          />
+        <ErrorPanel
+          requests={requests}
+          onOpenRequest={openRequestInTab}
+          visible={showErrors}
+        />
 
-          <TabBar
-            tabs={tabs}
-            activeTab={activeTab}
-            onSelect={setActiveTab}
-            onClose={handleCloseTab}
-          />
+        <div className="results-section-header">
+          <span className="results-section-title">Results</span>
+          <hr className="results-section-divider" />
+        </div>
 
-          <JsonViewer
-            result={activeResult}
-            activeIndex={activeIndex}
-            onSelectIndex={(i) => handleSelectSubIndex(activeTab, i)}
-          />
-        </>
-      )}
+        <TabBar
+          tabs={tabs}
+          activeTab={activeTab}
+          onSelect={setActiveTab}
+          onClose={handleCloseTab}
+        />
 
-      {mainTab === 'gateway' && (
+        <JsonViewer
+          result={activeResult}
+          activeIndex={activeIndex}
+          onSelectIndex={(i) => handleSelectSubIndex(activeTab, i)}
+        />
+      </div>
+
+      <div style={{ display: mainTab === 'gateway' ? '' : 'none' }}>
         <GatewayPanel />
-      )}
+      </div>
 
       {showPatchNote && <PatchNoteModal onClose={() => setShowPatchNote(false)} />}
 

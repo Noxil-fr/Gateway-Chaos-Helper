@@ -59,7 +59,7 @@ export default function GatewayPanel() {
               value={subscriberInput}
               onChange={(e) => { setSubscriberInput(e.target.value); setSelectedClient('') }}
               onKeyDown={handleKey}
-              placeholder="e.g. SUB-12345"
+              placeholder="e.g. F3C8A1D2-9B4E-4720-C6F1-2A5E8D3B7094"
             />
           </div>
 
@@ -79,14 +79,12 @@ export default function GatewayPanel() {
           </div>
 
           <button
-            className="search-btn"
+            className="search-btn search-btn-red"
             onClick={handleCheck}
             disabled={(!subscriberInput.trim() && !selectedClient) || loading}
           >
-            {loading ? 'Searching...' : 'Check 🔍'}
+            {loading ? 'Searching...' : "Let's go 🔥"}
           </button>
-
-          {error && <div className="inline-error">{error}</div>}
 
         </div>
       </div>
@@ -94,7 +92,7 @@ export default function GatewayPanel() {
       <div className="gateway-terminal-col">
         <div className="terminal">
           <div className="terminal-body">
-            {results.length === 0 ? (
+            {results.length === 0 && !error ? (
               <span className="terminal-muted">Waiting for a search...</span>
             ) : (
               <div className="terminal-scroll" ref={scrollRef}>
@@ -107,6 +105,12 @@ export default function GatewayPanel() {
                     <div><span className="terminal-key">Provider&nbsp;&nbsp;&nbsp;&nbsp;</span><span className="terminal-value">{r.provider}</span></div>
                   </div>
                 ))}
+                {error && (
+                  <div className="terminal-result-block">
+                    {results.length > 0 && <div style={{ borderTop: '1px solid #2a2a2a', margin: '0.3rem 0' }} />}
+                    <div><span className="terminal-warn">⚠ {error}</span></div>
+                  </div>
+                )}
               </div>
             )}
           </div>

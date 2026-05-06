@@ -197,7 +197,7 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
               </select>
             </div>
             <div className="field">
-              <label>Show errors</label>
+              <label>Show detected failed requests</label>
               <div className="toggle-row">
                 <button className={`toggle-btn ${showErrors ? 'active' : ''}`} onClick={() => handleToggleErrors(true)}>Yes</button>
                 <button className={`toggle-btn ${!showErrors ? 'active' : ''}`} onClick={() => handleToggleErrors(false)}>No</button>

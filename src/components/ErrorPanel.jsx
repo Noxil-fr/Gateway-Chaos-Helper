@@ -37,7 +37,7 @@ function RequestRow({ req, onOpen }) {
         <span className="error-req-time">{time}</span>
         <span className="error-req-scope">{scope}</span>
       </div>
-      <button className="error-req-open" onClick={() => onOpen(req)}>Open</button>
+      <button className="error-req-open" onClick={() => onOpen(req)}>Open in result</button>
     </div>
   )
 }

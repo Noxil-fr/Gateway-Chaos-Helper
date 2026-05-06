@@ -8,14 +8,18 @@ const QUERY_TYPES = [
 
 const SEARCH_MODES_BY_QUERY = {
   SetRepairOrder: [
-    { value: 'folderID', label: 'Internal №' },
-    { value: 'immat', label: 'Plate №' },
-    { value: 'orNumber', label: 'RO №' },
+    { value: 'random', label: 'Random request', pin: true },
+    { value: 'folderID', label: 'Internal ID (Keys)' },
+    { value: 'immat', label: 'Plate' },
+    { value: 'orNumber', label: 'RO' },
+    { value: 'clientID', label: 'Codigo Cliente' },
   ],
   SetWorkShopAppointmentV2: [
-    { value: 'folderID', label: 'Internal №' },
-    { value: 'immat', label: 'Plate №' },
+    { value: 'random', label: 'Random request', pin: true },
+    { value: 'folderID', label: 'Internal ID (Keys)' },
+    { value: 'immat', label: 'Plate' },
     { value: 'vin', label: 'VIN' },
+    { value: 'clientID', label: 'Codigo Cliente' },
   ],
 }
 
@@ -24,22 +28,29 @@ const getSearchModes = (queryType) => SEARCH_MODES_BY_QUERY[queryType] || SEARCH
 const getFieldConfig = (queryType, searchMode) => {
   if (queryType === 'SetWorkShopAppointmentV2') {
     if (searchMode === 'folderID') {
-      return { label: 'Internal appointment ID', placeholder: 'e.g. 001|431994', historyKey: 'ws_appt' }
+      return { label: 'Internal appointment ID (Keys)', placeholder: 'e.g. 001|431994', historyKey: 'ws_appt' }
     }
     if (searchMode === 'immat') {
-      return { label: 'License plate', placeholder: 'e.g. AB-123-CD', historyKey: 'ws_plate' }
+      return { label: 'License plate', placeholder: 'e.g. AB-123-CD or AB123CD', historyKey: 'ws_plate' }
     }
     if (searchMode === 'vin') {
       return { label: 'VIN', placeholder: 'e.g. WME4533421K232068', historyKey: 'ws_vin' }
     }
   }
 
+  if (searchMode === 'clientID') {
+    return { label: 'Codigo Cliente', placeholder: 'e.g. 1048562', historyKey: 'clientID' }
+  }
+  if (searchMode === 'random') {
+    return { label: '', placeholder: '', historyKey: '' }
+  }
+
   // SetRepairOrder
   if (searchMode === 'folderID') {
-    return { label: 'Internal folder ID', placeholder: 'e.g. 001|404299', historyKey: 'interne' }
+    return { label: 'Internal folder ID (Keys)', placeholder: 'e.g. 001|404299', historyKey: 'interne' }
   }
   if (searchMode === 'immat') {
-    return { label: 'License plate', placeholder: 'e.g. AB-123-CD', historyKey: 'immat' }
+    return { label: 'License plate', placeholder: 'e.g. AB-123-CD or AB123CD', historyKey: 'immat' }
   }
   return { label: 'RO number', placeholder: 'e.g. 107898', historyKey: 'orNumber' }
 }
@@ -216,11 +227,13 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
     } else if (searchMode === 'immat') {
       if (!searchValue.trim()) return
       label = searchValue.trim().toUpperCase()
+      const normalizedInput = label.replace(/-/g, '')
+      const normalize = (val) => (val || '').toUpperCase().replace(/-/g, '')
       if (queryType === 'SetWorkShopAppointmentV2') {
-        found = typedRequests.filter((r) => ((r.Vehicle?.RegistrationNumber || r.RegistrationNumber || '')).toUpperCase() === label)
+        found = typedRequests.filter((r) => normalize(r.Vehicle?.RegistrationNumber || r.RegistrationNumber) === normalizedInput)
         saveToHistory('ws_plate', searchValue.trim())
       } else {
-        found = typedRequests.filter((r) => (r.VehicleRegistrationNumber || '').toUpperCase() === label)
+        found = typedRequests.filter((r) => normalize(r.VehicleRegistrationNumber) === normalizedInput)
         saveToHistory('immat', searchValue.trim())
       }
     } else if (searchMode === 'orNumber') {
@@ -233,6 +246,16 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
       label = searchValue.trim().toUpperCase()
       found = typedRequests.filter((r) => ((r.Vehicle?.VIN || r.VIN || '')).toUpperCase() === label)
       saveToHistory('ws_vin', searchValue.trim())
+    } else if (searchMode === 'clientID') {
+      if (!searchValue.trim()) return
+      label = searchValue.trim()
+      found = typedRequests.filter((r) => String(r.InternalClientID || '') === label)
+      saveToHistory('clientID', searchValue.trim())
+    } else if (searchMode === 'random') {
+      if (typedRequests.length === 0) return
+      const pick = typedRequests[Math.floor(Math.random() * typedRequests.length)]
+      label = pick.InternalFolderID || pick.InternalAppointmentID || 'random'
+      found = [pick]
     }
     if (timeStart || timeEnd) {
       found = found.filter((r) => {
@@ -249,7 +272,7 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
 const handleKey = (e) => { if (e.key === 'Enter') handleApiSearch() }
   const logDate = logStart ? extractDate(logStart) : null
 
-  const isSearchDisabled = requests.length === 0 || !searchValue.trim()
+  const isSearchDisabled = requests.length === 0 || (searchMode !== 'random' && !searchValue.trim())
 
   const typedTotal = queryType ? requests.filter(r => r._queryType === queryType).length : requests.length
   const { placeholder: searchPlaceholder, label: searchLabel, historyKey } = getFieldConfig(queryType, searchMode)
@@ -271,7 +294,7 @@ const handleKey = (e) => { if (e.key === 'Enter') handleApiSearch() }
             </div>
 
             <div className="field">
-              <label>Show errors</label>
+              <label>Show "Failed requests detected"</label>
               <div className="toggle-row">
                 <button className={`toggle-btn ${showErrors ? 'active' : ''}`} onClick={() => handleToggleErrors(true)}>Yes</button>
                 <button className={`toggle-btn ${!showErrors ? 'active' : ''}`} onClick={() => handleToggleErrors(false)}>No</button>
@@ -305,17 +328,23 @@ const handleKey = (e) => { if (e.key === 'Enter') handleApiSearch() }
                 />
               </div>
 
-              <div className="field search-value-field">
-                <label>{searchLabel}</label>
-                <HistoryInput
-                  type="text"
-                  placeholder={searchPlaceholder}
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  onKeyDown={handleKey}
-                  historyKey={historyKey}
-                />
-              </div>
+              {searchMode === 'random' ? (
+                <div className="field search-value-field random-hint">
+                  <span>Perfect for testing the file!</span>
+                </div>
+              ) : (
+                <div className="field search-value-field">
+                  <label>{searchLabel}</label>
+                  <HistoryInput
+                    type="text"
+                    placeholder={searchPlaceholder}
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    onKeyDown={handleKey}
+                    historyKey={historyKey}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -333,7 +362,7 @@ const handleKey = (e) => { if (e.key === 'Enter') handleApiSearch() }
           </div>
 
           <div className="search-actions-row">
-            <button className="search-btn" onClick={handleApiSearch} disabled={isSearchDisabled}>Let's go 🔥</button>
+            <button className="search-btn search-btn-red" onClick={handleApiSearch} disabled={isSearchDisabled}>Let's go 🔥</button>
             <div className="reset-hint">Press <kbd>F5</kbd> to reset</div>
 
            

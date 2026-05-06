@@ -17,8 +17,10 @@ export default function CustomSelect({ options, value, onChange, disabled, place
     if (!open) setSearch('')
   }, [open])
 
+  const pinned = useMemo(() => options.filter(o => o.pin), [options])
+
   const sorted = useMemo(() =>
-    [...options].sort((a, b) => a.label.localeCompare(b.label)),
+    [...options.filter(o => !o.pin)].sort((a, b) => a.label.localeCompare(b.label)),
     [options]
   )
 
@@ -62,6 +64,20 @@ export default function CustomSelect({ options, value, onChange, disabled, place
               >
                 {placeholder}
               </div>
+            )}
+            {pinned.length > 0 && !search && (
+              <>
+                {pinned.map(o => (
+                  <div
+                    key={o.value}
+                    className={`client-dropdown-option client-dropdown-option--pinned ${value === o.value ? 'selected' : ''}`}
+                    onMouseDown={() => { onChange(o.value); setOpen(false) }}
+                  >
+                    {o.label}
+                  </div>
+                ))}
+                <div className="client-dropdown-divider" />
+              </>
             )}
             {filtered.length === 0 && (
               <div className="client-dropdown-empty">No results</div>
