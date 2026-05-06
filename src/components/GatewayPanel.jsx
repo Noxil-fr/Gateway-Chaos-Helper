@@ -17,10 +17,10 @@ export default function GatewayPanel() {
   }, [])
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [results])
+    setTimeout(() => {
+      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }, 0)
+  }, [results, error])
 
   const handleCheck = async () => {
     if (loading) return
