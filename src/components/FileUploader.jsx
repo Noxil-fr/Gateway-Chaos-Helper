@@ -149,7 +149,12 @@ export default function FileUploader({ onParsed }) {
     const reader = new FileReader()
     reader.onload = (e) => {
       const { results, firstTimestamp, lastTimestamp } = parseLog(e.target.result)
-      setStats(results.length)
+      const typeCounts = {}
+      for (const r of results) {
+        const qt = r._queryType || 'unknown'
+        typeCounts[qt] = (typeCounts[qt] || 0) + 1
+      }
+      setStats({ total: results.length, typeCounts })
       onParsed(results, firstTimestamp, lastTimestamp)
     }
     reader.readAsText(file)
@@ -175,7 +180,12 @@ export default function FileUploader({ onParsed }) {
       {filename && <div className="filename">✅ {filename}</div>}
       {stats !== null && (
         <div className="stats">
-          {stats} request{stats > 1 ? 's' : ''} found
+          <span>{stats.total} request{stats.total > 1 ? 's' : ''} found</span>
+          <div className="stats-breakdown">
+            {Object.entries(stats.typeCounts).map(([type, count]) => (
+              <span key={type} className="stats-type">{type} <strong>{count}</strong></span>
+            ))}
+          </div>
         </div>
       )}
     </div>

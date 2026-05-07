@@ -96,6 +96,8 @@ div.upload-zone.active {
 div.upload-zone input { display: none; }
 div.upload-zone .filename { margin-top: 0.5rem; color: var(--green); font-size: 0.9rem; }
 div.upload-zone .stats { margin-top: 0.3rem; color: var(--text3); font-size: 0.8rem; }
+div.upload-zone .stats-breakdown { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-top: 0.3rem; }
+span.stats-type { font-size: 0.75rem; color: var(--text3); background: var(--surface2); border-radius: 999px; padding: 0.1rem 0.6rem; }
 
 /* ── Champs ──────────────────────────────────────────────── */
 div.field {
