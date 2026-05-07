@@ -7,6 +7,15 @@ const INTRO = {
 
 const NOTES = [
   {
+    version: 'v1.3',
+    entries: [
+      {
+        fr: "Ajout d'un menu de navigation latéral dans les résultats — liste les jobs et leurs packs, cliquer sur un élément fait défiler jusqu'à lui dans le JSON.",
+        en: "Added a side navigation menu in the results panel — lists jobs and their packs, clicking an item scrolls to it in the JSON.",
+      },
+    ],
+  },
+  {
     version: 'v1.2',
     entries: [
       {

@@ -126,7 +126,7 @@ function HistoryInput({ value, onChange, onKeyDown, placeholder, historyKey, ...
   )
 }
 
-export default function SearchBar({ requests, onResult, totalCount, logStart, logEnd, lastResult, onShowErrorsChange, failedCount, errorCount, onOpenRawRequest }) {
+export default function SearchBar({ requests, onResult, totalCount, logStart, logEnd, lastResult, onShowErrorsChange, failedCount, errorCount, onOpenRawRequest, fileVersion }) {
   const [queryType, setQueryType] = useState('SetRepairOrder')
   const [showErrors, setShowErrors] = useState(true)
   const [showRawPopup, setShowRawPopup] = useState(false)
@@ -169,6 +169,10 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
     if (!lastResult) return
     setSearchHistory(prev => [...prev, lastResult])
   }, [lastResult])
+
+  useEffect(() => {
+    if (fileVersion > 0) setSearchHistory([])
+  }, [fileVersion])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -410,7 +414,7 @@ const handleKey = (e) => { if (e.key === 'Enter') handleApiSearch() }
                       <div><span className="terminal-key">Search&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span className="terminal-value">{result.internalFolderID}</span></div>
                       <div>
                         <span className="terminal-key">Result&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                        <span className={result.found.length === 0 ? 'terminal-warn' : 'terminal-value'}>{result.found.length} found</span>
+                        <span className={result.found.length === 0 ? 'terminal-warn' : 'terminal-value'}>{result.found.length} found{result.found.length === 0 ? ' ⚠' : ''}</span>
                       </div>
                       {result.found.map((item, i) => (
                         <div key={i}>

@@ -7,9 +7,11 @@ import ErrorPanel from './components/ErrorPanel'
 import MainTabs from './components/MainTabs'
 import GatewayPanel from './components/GatewayPanel'
 import PatchNoteModal from './components/PatchNoteModal'
+import SelectionModal from './components/SelectionModal'
 
 let tabCounter = 0
-const MAX_SUBTABS = 8
+const MAX_SUBTABS = 16
+const MAX_TABS = 16
 
 export default function App() {
   const [requests, setRequests] = useState([])
@@ -24,6 +26,13 @@ export default function App() {
   const [showErrors, setShowErrors] = useState(true)
   const [mainTab, setMainTab] = useState('analyzer')
   const [showPatchNote, setShowPatchNote] = useState(false)
+  const [fileVersion, setFileVersion] = useState(0)
+  const [tabError, setTabError] = useState(null)
+
+  const showTabLimit = () => {
+    setTabError(`Tab limit reached (${MAX_TABS} max). Close a tab to open a new one.`)
+    setTimeout(() => setTabError(null), 4000)
+  }
 
   // Count failed requests (with severity > 0 warnings)
   const failedCount = useMemo(() => {
@@ -61,12 +70,14 @@ export default function App() {
     setSubIndexes({})
     setLogStart(firstTimestamp || '')
     setLogEnd(lastTimestamp || '')
+    setFileVersion(v => v + 1)
   }
 
   const openRequestInTab = (req) => {
     const label = req.InternalFolderID || req._scope?.slice(0, 8) || 'unknown'
     const existing = tabs.find((t) => t.internalFolderID === label)
     if (existing) { setActiveTab(existing.id); return }
+    if (tabs.length >= MAX_TABS) { showTabLimit(); return }
     const id = ++tabCounter
     setTabs((prev) => [...prev, {
       id, internalFolderID: label, label,
@@ -76,14 +87,10 @@ export default function App() {
     setSubIndexes((prev) => ({ ...prev, [id]: 0 }))
   }
 
-  const handleResult = ({ internalFolderID, found, totalCount }) => {
-    setLastResult({ internalFolderID, found, totalCount })
-    if (found.length > MAX_SUBTABS) {
-      setPopup({ internalFolderID, count: found.length })
-      return
-    }
+  const openFoundInTab = (internalFolderID, found) => {
     const existing = tabs.find((t) => t.internalFolderID === internalFolderID)
     if (existing) { setActiveTab(existing.id); return }
+    if (tabs.length >= MAX_TABS) { showTabLimit(); return }
     const id = ++tabCounter
     setTabs((prev) => [...prev, {
       id, internalFolderID, label: internalFolderID,
@@ -93,7 +100,34 @@ export default function App() {
     setSubIndexes((prev) => ({ ...prev, [id]: 0 }))
   }
 
+  const handleResult = ({ internalFolderID, found, totalCount }) => {
+    setLastResult({ internalFolderID, found, totalCount })
+    if (found.length === 0) return
+    if (found.length > MAX_SUBTABS) {
+      setPopup({ internalFolderID, found })
+      return
+    }
+    openFoundInTab(internalFolderID, found)
+  }
+
+  const handleSelectionConfirm = (selectedItems) => {
+    setPopup(null)
+    if (selectedItems.length === 0) return
+    const internalFolderID = popup.internalFolderID
+    const existing = tabs.find((t) => t.internalFolderID === internalFolderID)
+    if (existing) { setActiveTab(existing.id); return }
+    if (tabs.length >= MAX_TABS) { showTabLimit(); return }
+    const id = ++tabCounter
+    setTabs((prev) => [...prev, {
+      id, internalFolderID, label: internalFolderID,
+      result: { internalFolderID, found: selectedItems, totalCount },
+    }])
+    setActiveTab(id)
+    setSubIndexes((prev) => ({ ...prev, [id]: 0 }))
+  }
+
   const openRawRequestInTab = (rawObj) => {
+    if (tabs.length >= MAX_TABS) { showTabLimit(); return }
     const id = ++tabCounter
     const internalFolderID = `RAW-${id}`
     const req = {
@@ -131,7 +165,7 @@ export default function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1>Gateway Chaos Helper <span className="version">v1.2</span><button className="patchnote-btn" onClick={() => setShowPatchNote(true)}>Read me</button></h1>
+        <h1>Gateway Chaos Helper <span className="version">v1.3</span><button className="patchnote-btn" onClick={() => setShowPatchNote(true)}>Read me</button></h1>
       </div>
 
       <FileUploader onParsed={handleParsed} />
@@ -150,6 +184,7 @@ export default function App() {
           failedCount={failedCount}
           errorCount={errorCount}
           onOpenRawRequest={openRawRequestInTab}
+        fileVersion={fileVersion}
         />
 
         <ErrorPanel
@@ -170,6 +205,8 @@ export default function App() {
           onClose={handleCloseTab}
         />
 
+        {tabError && <div className="tab-limit-error">{tabError}</div>}
+
         <JsonViewer
           result={activeResult}
           activeIndex={activeIndex}
@@ -184,17 +221,13 @@ export default function App() {
       {showPatchNote && <PatchNoteModal onClose={() => setShowPatchNote(false)} />}
 
       {popup && (
-        <div className="popup-overlay" onClick={() => setPopup(null)}>
-          <div className="popup" onClick={(e) => e.stopPropagation()}>
-            <div className="popup-title">⚠️ Too many results</div>
-            <p><strong>{popup.count}</strong> requests found for <code>{popup.internalFolderID}</code>.</p>
-            <p>
-              Display is limited to <strong>{MAX_SUBTABS} sub-tabs</strong>.<br />
-              Please refine your search using the <strong>Start time</strong> and <strong>End time</strong> filters.
-            </p>
-            <button className="popup-close" onClick={() => setPopup(null)}>Close</button>
-          </div>
-        </div>
+        <SelectionModal
+          internalFolderID={popup.internalFolderID}
+          found={popup.found}
+          totalCount={totalCount}
+          onConfirm={handleSelectionConfirm}
+          onClose={() => setPopup(null)}
+        />
       )}
     </div>
   )
