@@ -9,7 +9,7 @@ export default function TabBar({ tabs, activeTab, onSelect, onClose }) {
           className={`tab ${activeTab === tab.id ? 'active' : ''}`}
           onClick={() => onSelect(tab.id)}
         >
-          {tab.label}
+          <span className="tab-label">{tab.label}</span>
           <span
             className="close-tab"
             onClick={(e) => {

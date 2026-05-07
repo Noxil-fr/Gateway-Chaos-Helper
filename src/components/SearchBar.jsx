@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import CustomSelect from './CustomSelect'
 
 const QUERY_TYPES = [
-  { value: 'SetRepairOrder', label: 'SetRepairOrder - RO' },
+  { value: 'SetRepairOrder', label: 'SetRepairOrder' },
   { value: 'SetWorkShopAppointmentV2', label: 'SetWorkShopAppointmentV2' },
+  { value: 'SetClients', label: 'SetClients' },
+  { value: 'SetEvents', label: 'SetEvents' },
 ]
 
 const SEARCH_MODES_BY_QUERY = {
@@ -21,37 +23,51 @@ const SEARCH_MODES_BY_QUERY = {
     { value: 'vin', label: 'VIN' },
     { value: 'clientID', label: 'Codigo Cliente' },
   ],
+  SetClients: [
+    { value: 'random', label: 'Random request', pin: true },
+    { value: 'clientID', label: 'Codigo Cliente' },
+    { value: 'lastName', label: 'Last Name' },
+    { value: 'companyName', label: 'Company Name' },
+    { value: 'city', label: 'City' },
+    { value: 'mobilePhone', label: 'Mobile Phone' },
+    { value: 'email', label: 'Email' },
+  ],
+  SetEvents: [
+    { value: 'random', label: 'Random request', pin: true },
+    { value: 'subscriberID', label: 'Subscriber ID' },
+    { value: 'eventBusID', label: 'IDEventBus' },
+  ],
 }
 
 const getSearchModes = (queryType) => SEARCH_MODES_BY_QUERY[queryType] || SEARCH_MODES_BY_QUERY.SetRepairOrder
 
 const getFieldConfig = (queryType, searchMode) => {
   if (queryType === 'SetWorkShopAppointmentV2') {
-    if (searchMode === 'folderID') {
-      return { label: 'Internal appointment ID (Keys)', placeholder: 'e.g. 001|431994', historyKey: 'ws_appt' }
-    }
-    if (searchMode === 'immat') {
-      return { label: 'License plate', placeholder: 'e.g. AB-123-CD or AB123CD', historyKey: 'ws_plate' }
-    }
-    if (searchMode === 'vin') {
-      return { label: 'VIN', placeholder: 'e.g. WME4533421K232068', historyKey: 'ws_vin' }
-    }
+    if (searchMode === 'folderID') return { label: 'Internal appointment ID (Keys)', placeholder: 'e.g. 001|431994', historyKey: 'ws_appt' }
+    if (searchMode === 'immat') return { label: 'License plate', placeholder: 'e.g. AB-123-CD or AB123CD', historyKey: 'ws_plate' }
+    if (searchMode === 'vin') return { label: 'VIN', placeholder: 'e.g. WME4533421K232068', historyKey: 'ws_vin' }
   }
 
-  if (searchMode === 'clientID') {
-    return { label: 'Codigo Cliente', placeholder: 'e.g. 1048562', historyKey: 'clientID' }
+  if (queryType === 'SetClients') {
+    if (searchMode === 'clientID') return { label: 'Codigo Cliente', placeholder: 'e.g. 762745', historyKey: 'sc_clientID' }
+    if (searchMode === 'lastName') return { label: 'Last Name', placeholder: 'e.g. AFARSIOU', historyKey: 'sc_lastName' }
+    if (searchMode === 'companyName') return { label: 'Company Name', placeholder: 'e.g. PROTEC', historyKey: 'sc_companyName' }
+    if (searchMode === 'city') return { label: 'City', placeholder: 'e.g. GOMETZ LA VILLE', historyKey: 'sc_city' }
+    if (searchMode === 'mobilePhone') return { label: 'Mobile Phone', placeholder: 'e.g. 0624786994', historyKey: 'sc_phone' }
+    if (searchMode === 'email') return { label: 'Email', placeholder: 'e.g. batipros@outlook.com', historyKey: 'sc_email' }
   }
-  if (searchMode === 'random') {
-    return { label: '', placeholder: '', historyKey: '' }
+
+  if (queryType === 'SetEvents') {
+    if (searchMode === 'subscriberID') return { label: 'Subscriber ID', placeholder: 'e.g. 495F14CD-47EE-457F-AFFF-F7967AA4C49C', historyKey: 'ev_subscriberID' }
+    if (searchMode === 'eventBusID') return { label: 'IDEventBus', placeholder: 'e.g. 7775030', historyKey: 'ev_eventBusID' }
   }
+
+  if (searchMode === 'clientID') return { label: 'Codigo Cliente', placeholder: 'e.g. 1048562', historyKey: 'clientID' }
+  if (searchMode === 'random') return { label: '', placeholder: '', historyKey: '' }
 
   // SetRepairOrder
-  if (searchMode === 'folderID') {
-    return { label: 'Internal folder ID (Keys)', placeholder: 'e.g. 001|404299', historyKey: 'interne' }
-  }
-  if (searchMode === 'immat') {
-    return { label: 'License plate', placeholder: 'e.g. AB-123-CD or AB123CD', historyKey: 'immat' }
-  }
+  if (searchMode === 'folderID') return { label: 'Internal folder ID (Keys)', placeholder: 'e.g. 001|404299', historyKey: 'interne' }
+  if (searchMode === 'immat') return { label: 'License plate', placeholder: 'e.g. AB-123-CD or AB123CD', historyKey: 'immat' }
   return { label: 'RO number', placeholder: 'e.g. 107898', historyKey: 'orNumber' }
 }
 
@@ -126,9 +142,8 @@ function HistoryInput({ value, onChange, onKeyDown, placeholder, historyKey, ...
   )
 }
 
-export default function SearchBar({ requests, onResult, totalCount, logStart, logEnd, lastResult, onShowErrorsChange, failedCount, errorCount, onOpenRawRequest, fileVersion }) {
+export default function SearchBar({ requests, onResult, totalCount, logStart, logEnd, lastResult, onOpenRawRequest, fileVersion, onQueryTypeChange }) {
   const [queryType, setQueryType] = useState('SetRepairOrder')
-  const [showErrors, setShowErrors] = useState(true)
   const [showRawPopup, setShowRawPopup] = useState(false)
   const [rawText, setRawText] = useState('')
   const [rawError, setRawError] = useState(null)
@@ -141,6 +156,34 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
   const [searchHistory, setSearchHistory] = useState([])
   const scrollRef = useRef()
 
+  const { failedCount, errorCount } = useMemo(() => {
+    if (queryType === 'SetRepairOrder') {
+      const typed = requests.filter(r => r._queryType === 'SetRepairOrder')
+      const failed = typed.filter(r => {
+        const resp = r._response
+        if (!resp || resp.Status !== 'FAIL') return false
+        return (resp.Warnings || []).some(w => w.Severity > 0)
+      })
+      let errors = 0
+      for (const r of failed) {
+        const msgs = new Set((r._response.Warnings || []).filter(w => w.Severity > 0).map(w => (w.ErrorMessage || '').trim()).filter(Boolean))
+        errors += msgs.size
+      }
+      return { failedCount: failed.length, errorCount: errors }
+    }
+    if (queryType === 'SetEvents') {
+      const typed = requests.filter(r => r._queryType === 'SetEvents')
+      const failed = typed.filter(r => (r.Events || []).some(e => String(e.Status) === '-1'))
+      const msgs = new Set()
+      for (const r of failed) {
+        for (const e of (r.Events || [])) {
+          if (String(e.Status) === '-1' && e.Message) msgs.add(e.Message.trim())
+        }
+      }
+      return { failedCount: failed.length, errorCount: msgs.size }
+    }
+    return { failedCount: 0, errorCount: 0 }
+  }, [requests, queryType])
 
   const extractTime = (isoStr) => { if (!isoStr) return ''; return isoStr.slice(11, 16) }
   const extractDate = (isoStr) => { if (!isoStr) return ''; return isoStr.slice(0, 10) }
@@ -187,10 +230,6 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
     setSearchValue('')
   }, [queryType])
 
-  const handleToggleErrors = (val) => {
-    setShowErrors(val)
-    if (onShowErrorsChange) onShowErrorsChange(val)
-  }
 
   const formatJson = (obj) => {
     try { return JSON.stringify(obj, null, 2) } catch { return '' }
@@ -206,10 +245,11 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
       setRawError('Invalid JSON. Please fix it and try again.')
       return
     }
-    if (obj === null || Array.isArray(obj) || typeof obj !== 'object') {
-      setRawError('The JSON must be an object (e.g. { "InternalFolderID": "..." }).')
+    if (obj === null || typeof obj !== 'object') {
+      setRawError('The JSON must be an object or array.')
       return
     }
+    if (Array.isArray(obj)) obj = { Items: obj }
     const pretty = formatJson(obj)
     if (pretty) setRawText(pretty)
     if (onOpenRawRequest) onOpenRawRequest(obj)
@@ -254,11 +294,46 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
       if (!searchValue.trim()) return
       label = searchValue.trim()
       found = typedRequests.filter((r) => String(r.InternalClientID || '') === label)
-      saveToHistory('clientID', searchValue.trim())
+      saveToHistory(queryType === 'SetClients' ? 'sc_clientID' : 'clientID', searchValue.trim())
+    } else if (searchMode === 'lastName') {
+      if (!searchValue.trim()) return
+      label = searchValue.trim()
+      found = typedRequests.filter((r) => (r.LastName || '').toLowerCase().includes(label.toLowerCase()))
+      saveToHistory('sc_lastName', label)
+    } else if (searchMode === 'companyName') {
+      if (!searchValue.trim()) return
+      label = searchValue.trim()
+      found = typedRequests.filter((r) => (r.CompanyName || '').toLowerCase().includes(label.toLowerCase()))
+      saveToHistory('sc_companyName', label)
+    } else if (searchMode === 'city') {
+      if (!searchValue.trim()) return
+      label = searchValue.trim()
+      found = typedRequests.filter((r) => (r.Addresses || []).some(a => (a.City || '').toLowerCase().includes(label.toLowerCase())))
+      saveToHistory('sc_city', label)
+    } else if (searchMode === 'mobilePhone') {
+      if (!searchValue.trim()) return
+      label = searchValue.trim()
+      found = typedRequests.filter((r) => (r.Communications || []).some(c => c.Mode === 'phone' && c.Usage === 'Mobile' && (c.Value || '').includes(label)))
+      saveToHistory('sc_phone', label)
+    } else if (searchMode === 'email') {
+      if (!searchValue.trim()) return
+      label = searchValue.trim()
+      found = typedRequests.filter((r) => (r.Communications || []).some(c => c.Mode === 'email' && (c.Value || '').toLowerCase().includes(label.toLowerCase())))
+      saveToHistory('sc_email', label)
+    } else if (searchMode === 'subscriberID') {
+      if (!searchValue.trim()) return
+      label = searchValue.trim()
+      found = typedRequests.filter(r => (r.IdSubscriber || '').toLowerCase() === label.toLowerCase())
+      saveToHistory('ev_subscriberID', label)
+    } else if (searchMode === 'eventBusID') {
+      if (!searchValue.trim()) return
+      label = searchValue.trim()
+      found = typedRequests.filter(r => (r.Events || []).some(e => String(e.IdEventBus || '') === label))
+      saveToHistory('ev_eventBusID', label)
     } else if (searchMode === 'random') {
       if (typedRequests.length === 0) return
       const pick = typedRequests[Math.floor(Math.random() * typedRequests.length)]
-      label = pick.InternalFolderID || pick.InternalAppointmentID || 'random'
+      label = pick.InternalFolderID || pick.InternalAppointmentID || pick.InternalClientID || pick._scope?.slice(0, 8) || 'random'
       found = [pick]
     }
     if (timeStart || timeEnd) {
@@ -285,37 +360,29 @@ const handleKey = (e) => { if (e.key === 'Enter') handleApiSearch() }
     <div className="search-section">
       <div className="search-three-col">
 
-        {/* Col 1 — Query type + Show errors */}
+        {/* Col 1 — Query type + Convert to JSON */}
         <div className="search-col-query">
-          <div className="search-block block-query" style={{ height: '100%' }}>
+          <div className="search-block block-query" style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1.8rem' }}>
             <div className="field">
               <label>Query type</label>
               <CustomSelect
                 options={QUERY_TYPES}
                 value={queryType}
-                onChange={setQueryType}
+                onChange={(val) => { setQueryType(val); if (onQueryTypeChange) onQueryTypeChange(val) }}
               />
             </div>
 
-            <div className="field">
-              <label>Show "Failed requests detected"</label>
-              <div className="toggle-row">
-                <button className={`toggle-btn ${showErrors ? 'active' : ''}`} onClick={() => handleToggleErrors(true)}>Yes</button>
-                <button className={`toggle-btn ${!showErrors ? 'active' : ''}`} onClick={() => handleToggleErrors(false)}>No</button>
-              </div>
-            </div>
-
             {onOpenRawRequest && (
-  <>
-    <div className="search-col-divider" />
-    <div className="field">
-      <label>Convert to JSON format</label>
-      <button className="soft-btn" onClick={() => { setRawError(null); setShowRawPopup(true) }}>
-        Paste a raw query
-      </button>
-    </div>
-  </>
-)}
+              <>
+                <div className="search-col-divider" />
+                <div className="field">
+                  <label>Convert to JSON format</label>
+                  <button className="soft-btn" onClick={() => { setRawError(null); setShowRawPopup(true) }}>
+                    Paste a raw query
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

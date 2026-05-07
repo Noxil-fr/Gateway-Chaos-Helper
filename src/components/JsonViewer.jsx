@@ -109,6 +109,9 @@ function JsonBlock({ obj, navTarget, forceOpen }) {
   if (obj?._queryType === 'SetWorkShopAppointmentV2') {
     collapsePaths.add('Client.Consents')
   }
+  if (obj?._queryType === 'SetClients') {
+    collapsePaths.add('Consents')
+  }
 
   useEffect(() => {
     if (!navTarget) return
@@ -156,6 +159,8 @@ function formatLogMessage(message) {
   const markers = [
     { name: 'SetRepairOrder', marker: 'Call SetRepairOrder Params' },
     { name: 'SetWorkShopAppointmentV2', marker: 'Call SetWorkShopAppointmentV2 Params' },
+    { name: 'SetClients', marker: 'Call SetClients Params' },
+    { name: 'SetEvents', marker: 'Call SetEvents Params' },
   ]
   const hit = markers.map(m => ({ ...m, idx: message.indexOf(m.marker) })).find(m => m.idx !== -1)
   if (!hit) return { text: message, isRequest: false }
@@ -172,6 +177,15 @@ function formatLogMessage(message) {
       return { isRequest: true, preview: `Call SetRepairOrder Params {"InternalFolderID":"${folderID}"` }
     }
     const first = Array.isArray(payload) ? payload[0] : payload
+    if (hit.name === 'SetClients') {
+      const clientId = first?.InternalClientID || ''
+      return { isRequest: true, preview: `Call SetClients Params [{"InternalClientID":"${clientId}"` }
+    }
+    if (hit.name === 'SetEvents') {
+      const obj = Array.isArray(payload) ? payload[0] : payload
+      const subscriberId = obj?.IdSubscriber || ''
+      return { isRequest: true, preview: `Call SetEvents Params {"IdSubscriber":"${subscriberId}"` }
+    }
     const apptId = first?.InternalAppointmentID || ''
     return { isRequest: true, preview: `Call SetWorkShopAppointmentV2 Params [{"InternalAppointmentID":"${apptId}"` }
   } catch {

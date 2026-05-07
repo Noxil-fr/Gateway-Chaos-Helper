@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import FileUploader from './components/FileUploader'
 import SearchBar from './components/SearchBar'
 import TabBar from './components/TabBar'
 import JsonViewer from './components/JsonViewer'
-import ErrorPanel from './components/ErrorPanel'
+import ErrorPanel, { SetEventsErrorPanel } from './components/ErrorPanel'
 import MainTabs from './components/MainTabs'
 import GatewayPanel from './components/GatewayPanel'
 import PatchNoteModal from './components/PatchNoteModal'
@@ -23,7 +23,7 @@ export default function App() {
   const [logEnd, setLogEnd] = useState('')
   const [popup, setPopup] = useState(null)
   const [lastResult, setLastResult] = useState(null)
-  const [showErrors, setShowErrors] = useState(true)
+  const [activeQueryType, setActiveQueryType] = useState('SetRepairOrder')
   const [mainTab, setMainTab] = useState('analyzer')
   const [showPatchNote, setShowPatchNote] = useState(false)
   const [fileVersion, setFileVersion] = useState(0)
@@ -34,33 +34,6 @@ export default function App() {
     setTimeout(() => setTabError(null), 4000)
   }
 
-  // Count failed requests (with severity > 0 warnings)
-  const failedCount = useMemo(() => {
-    return requests.filter(r => {
-      const resp = r._response
-      if (!resp || resp.Status !== 'FAIL') return false
-      const warnings = resp.Warnings || []
-      return warnings.some(w => w.Severity > 0)
-    }).length
-  }, [requests])
-
-  // Count detected errors (sum of unique warning messages per failed request)
-  const errorCount = useMemo(() => {
-    let total = 0
-    for (const r of requests) {
-      const resp = r._response
-      if (!resp || resp.Status !== 'FAIL') continue
-      const warnings = resp.Warnings || []
-      const messages = new Set(
-        warnings
-          .filter(w => w.Severity > 0)
-          .map(w => (w.ErrorMessage || 'Unknown warning').trim())
-          .filter(Boolean),
-      )
-      total += messages.size
-    }
-    return total
-  }, [requests])
 
   const handleParsed = (parsed, firstTimestamp, lastTimestamp) => {
     setRequests(parsed)
@@ -180,18 +153,25 @@ export default function App() {
           logStart={logStart}
           logEnd={logEnd}
           lastResult={lastResult}
-          onShowErrorsChange={setShowErrors}
-          failedCount={failedCount}
-          errorCount={errorCount}
           onOpenRawRequest={openRawRequestInTab}
-        fileVersion={fileVersion}
+          fileVersion={fileVersion}
+          onQueryTypeChange={setActiveQueryType}
         />
 
-        <ErrorPanel
-          requests={requests}
-          onOpenRequest={openRequestInTab}
-          visible={showErrors}
-        />
+        {activeQueryType === 'SetRepairOrder' && (
+          <ErrorPanel
+            requests={requests}
+            onOpenRequest={openRequestInTab}
+            visible={true}
+          />
+        )}
+        {activeQueryType === 'SetEvents' && (
+          <SetEventsErrorPanel
+            requests={requests}
+            onOpenRequest={openRequestInTab}
+            visible={true}
+          />
+        )}
 
         <div className="results-section-header">
           <span className="results-section-title">Results</span>

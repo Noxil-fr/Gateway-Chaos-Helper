@@ -13,6 +13,14 @@ const NOTES = [
         fr: "Ajout d'un menu de navigation latéral dans les résultats — liste les jobs et leurs packs, cliquer sur un élément fait défiler jusqu'à lui dans le JSON.",
         en: "Added a side navigation menu in the results panel — lists jobs and their packs, clicking an item scrolls to it in the JSON.",
       },
+      {
+        fr: "Ajout des types de requêtes SetClients et SetEvents, chacun avec ses propres critères de recherche et son bandeau d'erreurs dédié.",
+        en: "Added SetClients and SetEvents query types, each with their own search criteria and dedicated error panel.",
+      },
+      {
+        fr: "Suppression du toggle \"Show failed requests detected\" remplacé par le bouton Show/Hide intégré au bandeau d'erreurs.",
+        en: "Removed the \"Show failed requests detected\" toggle, replaced by the Show/Hide button built into the error panel.",
+      },
     ],
   },
   {

@@ -1,22 +1,22 @@
 import { useState } from 'react'
 
+// ─── SetRepairOrder ───────────────────────────────────────────────────────────
+
 function groupErrors(requests) {
   const groups = {}
   for (const req of requests) {
     const resp = req._response
     if (!resp || resp.Status !== 'FAIL') continue
     const warnings = resp.Warnings || []
-    const relevantWarnings = warnings.filter(w => w.Severity > 0)
-    if (relevantWarnings.length === 0) continue
-    const seenMessages = new Set()
-    for (const w of relevantWarnings) {
+    const relevant = warnings.filter(w => w.Severity > 0)
+    if (relevant.length === 0) continue
+    const seen = new Set()
+    for (const w of relevant) {
       const message = w.ErrorMessage || 'Unknown warning'
-      if (seenMessages.has(message)) continue
-      seenMessages.add(message)
+      if (seen.has(message)) continue
+      seen.add(message)
       if (!groups[message]) groups[message] = []
-      if (!groups[message].find(r => r._scope === req._scope)) {
-        groups[message].push(req)
-      }
+      if (!groups[message].find(r => r._scope === req._scope)) groups[message].push(req)
     }
   }
   return Object.entries(groups)
@@ -53,11 +53,28 @@ function ErrorGroup({ group, onOpen }) {
       </div>
       {expanded && (
         <div className="error-group-body">
-          {group.reqs.map((req, i) => (
-            <RequestRow key={i} req={req} onOpen={onOpen} />
-          ))}
+          {group.reqs.map((req, i) => <RequestRow key={i} req={req} onOpen={onOpen} />)}
         </div>
       )}
+    </div>
+  )
+}
+
+function ErrorPanelShell({ title, badge, errorsBadge, children, visible }) {
+  const [collapsed, setCollapsed] = useState(true)
+  if (!visible) return null
+  return (
+    <div className="error-panel-section">
+      <div className="error-panel-header">
+        <span className="error-panel-icon">⚠</span>
+        <span className="error-panel-title">{title}</span>
+        {errorsBadge}
+        <span className="error-panel-types-badge">{badge}</span>
+        <button className="error-panel-toggle" onClick={() => setCollapsed(c => !c)}>
+          {collapsed ? '▶ Show' : '▼ Hide'}
+        </button>
+      </div>
+      {!collapsed && <div className="error-group-list">{children}</div>}
     </div>
   )
 }
@@ -65,39 +82,98 @@ function ErrorGroup({ group, onOpen }) {
 export default function ErrorPanel({ requests, onOpenRequest, visible }) {
   if (!visible || !requests || requests.length === 0) return null
   const groups = groupErrors(requests)
-  // Note: the same request can appear in multiple groups (different warning messages).
-  // So we show a unique failed-request count, and keep "errors" (rows across groups) separate.
+  const uniqueScopes = new Set(groups.flatMap(g => g.reqs.map(r => r._scope || r._timestamp)))
+  const failCount = uniqueScopes.size
   const failHitCount = groups.reduce((acc, g) => acc + g.reqs.length, 0)
-  const uniqueFailedScopes = new Set()
-  for (const g of groups) {
-    for (const r of g.reqs) {
-      uniqueFailedScopes.add(r._scope || `${r.InternalFolderID || '—'}|${r._timestamp || '—'}`)
-    }
-  }
-  const uniqueFailCount = uniqueFailedScopes.size
-  if (uniqueFailCount === 0) return null
+  if (failCount === 0) return null
 
   return (
-    <div className="error-panel-section">
-      <div className="error-panel-header">
-        <span className="error-panel-icon">⚠</span>
-        <span className="error-panel-title">
-          <strong>{uniqueFailCount}</strong> failed request{uniqueFailCount > 1 ? 's' : ''} detected
+    <ErrorPanelShell
+      visible={true}
+      title={<><strong>{failCount}</strong> failed SetRepairOrder request{failCount > 1 ? 's' : ''} detected</>}
+      badge={`${groups.length} error type${groups.length > 1 ? 's' : ''}`}
+      errorsBadge={failHitCount !== failCount && (
+        <span className="error-panel-errors-badge" title="Total errors detected (across error types)">
+          {failHitCount} errors
         </span>
-        {failHitCount !== uniqueFailCount && (
-          <span className="error-panel-errors-badge" title="Total errors detected (across error types)">
-            {failHitCount} errors
-          </span>
-        )}
-        <span className="error-panel-types-badge">
-          {groups.length} error type{groups.length > 1 ? 's' : ''}
-        </span>
+      )}
+    >
+      {groups.map((group, i) => <ErrorGroup key={i} group={group} onOpen={onOpenRequest} />)}
+    </ErrorPanelShell>
+  )
+}
+
+// ─── SetEvents ────────────────────────────────────────────────────────────────
+
+function groupSetEventsErrors(requests) {
+  const groups = {}
+  for (const req of requests) {
+    if (req._queryType !== 'SetEvents') continue
+    const failing = (req.Events || []).filter(e => String(e.Status) === '-1')
+    const seen = new Set()
+    for (const e of failing) {
+      const message = e.Message || 'Unknown error'
+      if (seen.has(message)) continue
+      seen.add(message)
+      if (!groups[message]) groups[message] = []
+      if (!groups[message].find(r => r._scope === req._scope)) groups[message].push(req)
+    }
+  }
+  return Object.entries(groups)
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([message, reqs]) => ({ message, reqs }))
+}
+
+function SetEventsRequestRow({ req, onOpen }) {
+  const subscriber = req.IdSubscriber ? req.IdSubscriber.slice(0, 8) + '…' : '—'
+  const time = req._timestamp ? req._timestamp.slice(11, 19) : '—'
+  const scope = req._scope || '—'
+  const failCount = (req.Events || []).filter(e => String(e.Status) === '-1').length
+  return (
+    <div className="error-req-row">
+      <div className="error-req-info">
+        <span className="error-req-folder">{subscriber}</span>
+        <span className="error-req-emp">{failCount} event{failCount > 1 ? 's' : ''}</span>
+        <span className="error-req-time">{time}</span>
+        <span className="error-req-scope">{scope}</span>
       </div>
-      <div className="error-group-list">
-        {groups.map((group, i) => (
-          <ErrorGroup key={i} group={group} onOpen={onOpenRequest} />
-        ))}
-      </div>
+      <button className="error-req-open" onClick={() => onOpen(req)}>Open in result</button>
     </div>
+  )
+}
+
+function SetEventsErrorGroup({ group, onOpen }) {
+  const [expanded, setExpanded] = useState(false)
+  return (
+    <div className="error-group">
+      <div className="error-group-header" onClick={() => setExpanded(e => !e)}>
+        <span className="error-group-toggle">{expanded ? '▼' : '▶'}</span>
+        <span className="error-group-message">{group.message}</span>
+        <span className="error-group-count">{group.reqs.length}</span>
+      </div>
+      {expanded && (
+        <div className="error-group-body">
+          {group.reqs.map((req, i) => <SetEventsRequestRow key={i} req={req} onOpen={onOpen} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function SetEventsErrorPanel({ requests, onOpenRequest, visible }) {
+  if (!visible || !requests || requests.length === 0) return null
+  const groups = groupSetEventsErrors(requests)
+  const uniqueScopes = new Set(groups.flatMap(g => g.reqs.map(r => r._scope || r._timestamp)))
+  const failCount = uniqueScopes.size
+  if (failCount === 0) return null
+
+  return (
+    <ErrorPanelShell
+      visible={true}
+      title={<><strong>{failCount}</strong> failed SetEvents request{failCount > 1 ? 's' : ''} detected</>}
+      badge={`${groups.length} error type${groups.length > 1 ? 's' : ''}`}
+    >
+      {groups.map((group, i) => <SetEventsErrorGroup key={i} group={group} onOpen={onOpenRequest} />)}
+    </ErrorPanelShell>
   )
 }

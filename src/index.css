@@ -530,7 +530,7 @@ div.tab-bar {
 }
 
 div.tab-bar button.tab {
-  padding: 0.45rem 1rem;
+  padding: 0.45rem 0.7rem;
   font-size: 0.82rem;
   background: var(--surface);
   border: none;
@@ -539,9 +539,16 @@ div.tab-bar button.tab {
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   flex: 0 0 calc((100% - 14px) / 8);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+div.tab-bar button.tab span.tab-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1 1 0;
+  min-width: 0;
 }
 div.tab-bar button.tab:hover { background: var(--surface2); color: var(--text); }
 div.tab-bar button.tab.active {
@@ -549,7 +556,7 @@ div.tab-bar button.tab.active {
   color: var(--green);
   border-bottom: 2px solid var(--green);
 }
-div.tab-bar button.tab span.close-tab { margin-left: 6px; color: var(--text3); font-size: 0.9rem; }
+div.tab-bar button.tab span.close-tab { margin-left: 6px; color: var(--text3); font-size: 0.9rem; flex-shrink: 0; }
 div.tab-bar button.tab span.close-tab:hover { color: var(--pink); }
 
 /* ── Résultat JSON ───────────────────────────────────────── */
@@ -964,6 +971,15 @@ div.error-group-header:hover { background: var(--surface2); }
 
 span.error-group-toggle { font-size: 0.6rem; color: var(--text3); }
 span.error-group-message { font-size: 0.82rem; color: var(--text); }
+span.error-group-qtype {
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: rgba(137,180,250,0.1);
+  color: var(--blue);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid rgba(137,180,250,0.25);
+}
 span.error-group-count {
   font-size: 0.72rem;
   font-weight: 700;
@@ -1125,6 +1141,17 @@ div.error-panel-header {
   border-bottom: 1px solid rgba(243,139,168,0.2);
   background: rgba(243,139,168,0.12);
 }
+button.error-panel-toggle {
+  margin-left: auto;
+  background: none;
+  border: 1px solid rgba(243,139,168,0.3);
+  border-radius: var(--radius);
+  color: var(--pink);
+  font-size: 0.78rem;
+  padding: 0.15rem 0.6rem;
+  cursor: pointer;
+}
+button.error-panel-toggle:hover { background: rgba(243,139,168,0.1); }
 span.error-panel-title { font-size: 0.88rem; color: #ffffff; font-weight: 500; }
 span.error-panel-icon { color: var(--pink); font-size: 1rem; }
 span.error-panel-types { font-size: 0.75rem; color: var(--pink); margin-left: auto; opacity: 0.7; }

@@ -98,6 +98,28 @@ export default function FileUploader({ onParsed }) {
           requests.push(item)
         }
       }
+
+      if (line.includes('Call SetClients Params')) {
+        const payload = extractJson(line, 'Call SetClients Params')
+        if (!payload) continue
+        const items = Array.isArray(payload) ? payload : [payload]
+        for (const item of items) {
+          if (!item || typeof item !== 'object') continue
+          item._timestamp = ts
+          item._scope = scope
+          item._queryType = 'SetClients'
+          requests.push(item)
+        }
+      }
+
+      if (line.includes('Call SetEvents Params')) {
+        const obj = extractJson(line, 'Call SetEvents Params')
+        if (!obj) continue
+        obj._timestamp = ts
+        obj._scope = scope
+        obj._queryType = 'SetEvents'
+        requests.push(obj)
+      }
     }
 
     // Pass 2: match responses by scope
