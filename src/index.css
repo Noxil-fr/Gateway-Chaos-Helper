@@ -35,7 +35,13 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
 }
+body::-webkit-scrollbar { width: 6px; }
+body::-webkit-scrollbar-track { background: transparent; }
+body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+body::-webkit-scrollbar-thumb:hover { background: var(--text3); }
 
 /* ── App ─────────────────────────────────────────────────── */
 div.app {
@@ -503,7 +509,13 @@ div.terminal-scroll {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
 }
+div.terminal-scroll::-webkit-scrollbar { width: 5px; }
+div.terminal-scroll::-webkit-scrollbar-track { background: transparent; }
+div.terminal-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+div.terminal-scroll::-webkit-scrollbar-thumb:hover { background: var(--text3); }
 
 span.terminal-muted {
   color: #444;
@@ -794,7 +806,13 @@ div.json-viewer {
   font-size: 0.88rem;
   line-height: 1.8;
   overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
 }
+div.json-viewer::-webkit-scrollbar { height: 5px; }
+div.json-viewer::-webkit-scrollbar-track { background: transparent; }
+div.json-viewer::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+div.json-viewer::-webkit-scrollbar-thumb:hover { background: var(--text3); }
 span.json-str {
   white-space: pre-wrap;
   word-break: break-word;
@@ -877,7 +895,13 @@ div.terminal-scroll {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
 }
+div.terminal-scroll::-webkit-scrollbar { width: 5px; }
+div.terminal-scroll::-webkit-scrollbar-track { background: transparent; }
+div.terminal-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+div.terminal-scroll::-webkit-scrollbar-thumb:hover { background: var(--text3); }
 
 /* ── Viewer tabs (Request/Response/Logs) ─────────────────── */
 div.viewer-tab-bar {
@@ -1264,8 +1288,8 @@ button.patchnote-btn:hover {
 
 /* ── Patch note modal ────────────────────────────────────── */
 div.popup-patchnote {
-  max-width: 560px;
-  min-height: 300px;
+  max-width: 680px;
+  min-height: 340px;
   padding: 0;
   gap: 0;
 }
@@ -1298,7 +1322,22 @@ span.popup-patchnote-title {
 div.popup-patchnote-body {
   padding: 1.4rem;
   overflow-y: auto;
-  max-height: 500px;
+  max-height: 600px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+div.popup-patchnote-body::-webkit-scrollbar {
+  width: 5px;
+}
+div.popup-patchnote-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+div.popup-patchnote-body::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 99px;
+}
+div.popup-patchnote-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text3);
 }
 
 div.patchnote-intro {
@@ -1349,8 +1388,10 @@ div.patchnote-entry {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  padding-left: 0.8rem;
-  border-left: 2px solid var(--border);
+  padding: 0.55rem 0.8rem;
+  background: rgba(255,255,255,0.04);
+  border-radius: var(--radius);
+  border-left: 2px solid var(--border2);
 }
 
 span.patchnote-fr {
@@ -1655,6 +1696,37 @@ div.viewer-request-layout {
   display: flex;
   gap: 0.8rem;
   align-items: flex-start;
+}
+
+/* ── Scroll to top button ──────────────────────────────────── */
+.scroll-top-wrapper {
+  position: sticky;
+  bottom: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+  margin-top: 0.5rem;
+}
+.scroll-top-btn {
+  pointer-events: all;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border2);
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: background 0.15s, color 0.15s;
+}
+.scroll-top-btn:hover {
+  background: var(--blue-dim);
+  color: var(--blue);
+  border-color: var(--blue);
 }
 
 div.job-navigator {

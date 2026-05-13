@@ -7,6 +7,15 @@ const INTRO = {
 
 const NOTES = [
   {
+    version: 'v1.4',
+    entries: [
+      {
+        fr: "Ajout d'une flèche en bas à droite des résultats pour remonter en haut du panneau en un clic.",
+        en: "Added an arrow at the bottom right of the results panel to scroll back to the top in one click.",
+      },
+    ],
+  },
+  {
     version: 'v1.3',
     entries: [
       {

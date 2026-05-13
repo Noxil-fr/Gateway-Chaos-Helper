@@ -225,8 +225,31 @@ function LogsBlock({ logs }) {
   )
 }
 
-function JobNavigator({ jobs, onNavigate }) {
-  const totalPacks = jobs.reduce((sum, job) => sum + (job.Packs?.length || 0), 0)
+const NAVIGATOR_CONFIGS = {
+  SetRepairOrder: {
+    jobsKey: 'Jobs',
+    jobLabel: (job, i) => job.JobDescr || `Job ${i + 1}`,
+    getNavItems: (job) => (job.Packs || []).map((pack, idx) => ({
+      label: pack.PackDescr || `Pack ${idx + 1}`,
+      pathSegment: `Packs[${idx}]`,
+    })),
+  },
+  SetWorkShopAppointmentV2: {
+    jobsKey: 'Job',
+    jobLabel: (job, i) => job.JobDescr || `Job ${i + 1}`,
+    getNavItems: (job) => (job.Items || [])
+      .map((item, idx) => ({ item, idx }))
+      .filter(({ item }) => item.ItemType === 'Pack')
+      .map(({ item, idx }) => ({
+        label: item.LineDescr || `Pack ${idx + 1}`,
+        pathSegment: `Items[${idx}]`,
+      })),
+  },
+}
+
+function JobNavigator({ jobs, config, onNavigate }) {
+  const { jobsKey, jobLabel, getNavItems } = config
+  const totalPacks = jobs.reduce((sum, job) => sum + getNavItems(job).length, 0)
   return (
     <div className="job-navigator">
       <div className="job-nav-header">
@@ -235,16 +258,16 @@ function JobNavigator({ jobs, onNavigate }) {
       </div>
       <div className="job-nav-list">
         {jobs.map((job, i) => {
-          const packs = job.Packs || []
+          const navItems = getNavItems(job)
           return (
             <div key={i} className="job-nav-group">
-              <div className="job-nav-job" onClick={() => onNavigate(`Jobs[${i}]`)}>
+              <div className="job-nav-job" onClick={() => onNavigate(`${jobsKey}[${i}]`)}>
                 <span className="job-nav-index">#{i + 1}</span>
-                <span className="job-nav-label">{job.JobDescr || `Job ${i + 1}`}</span>
+                <span className="job-nav-label">{jobLabel(job, i)}</span>
               </div>
-              {packs.map((pack, j) => (
-                <div key={j} className="job-nav-pack" onClick={() => onNavigate(`Jobs[${i}].Packs[${j}]`)}>
-                  {pack.PackDescr || `Pack ${j + 1}`}
+              {navItems.map((navItem, j) => (
+                <div key={j} className="job-nav-pack" onClick={() => onNavigate(`${jobsKey}[${i}].${navItem.pathSegment}`)}>
+                  {navItem.label}
                 </div>
               ))}
             </div>
@@ -263,17 +286,21 @@ function SubTabViewer({ item }) {
   const hasResponse = !!item._response
   const hasLogs = item._scopeLogs && item._scopeLogs.length > 0
   const isOk = item._response?.Status === 'OK'
-  const jobs = item.Jobs || []
+  const navConfig = NAVIGATOR_CONFIGS[item._queryType] || null
+  const jobs = navConfig ? (item[navConfig.jobsKey] || []) : []
   const hasJobs = jobs.length > 0
 
   const handleNavigate = (path) => {
-    const ancestors = new Set(['Jobs'])
-    const jobMatch = path.match(/^Jobs\[(\d+)\]/)
+    const jobsKey = navConfig?.jobsKey || 'Jobs'
+    const ancestors = new Set([jobsKey])
+    const jobMatch = path.match(new RegExp(`^${jobsKey}\\[(\\d+)\\]`))
     if (jobMatch) {
-      const idx = jobMatch[1]
-      if (path.includes('.Packs')) {
-        ancestors.add(`Jobs[${idx}]`)
-        ancestors.add(`Jobs[${idx}].Packs`)
+      const jobPath = `${jobsKey}[${jobMatch[1]}]`
+      ancestors.add(jobPath)
+      const afterJob = path.slice(jobPath.length)
+      if (afterJob) {
+        const subKeyMatch = afterJob.match(/^\.(\w+)\[/)
+        if (subKeyMatch) ancestors.add(`${jobPath}.${subKeyMatch[1]}`)
       }
     }
     setForceOpen(ancestors)
@@ -304,7 +331,7 @@ function SubTabViewer({ item }) {
 
       {activeInner === 'request' && (
         <div className={hasJobs ? 'viewer-request-layout' : ''}>
-          {hasJobs && <JobNavigator jobs={jobs} onNavigate={handleNavigate} />}
+          {hasJobs && <JobNavigator jobs={jobs} config={navConfig} onNavigate={handleNavigate} />}
           <JsonBlock obj={item} navTarget={navTarget} forceOpen={forceOpen} />
         </div>
       )}
@@ -315,14 +342,32 @@ function SubTabViewer({ item }) {
   )
 }
 
+function ScrollToTopBtn({ targetRef }) {
+  const handleClick = () => {
+    if (targetRef?.current) {
+      targetRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  return (
+    <div className="scroll-top-wrapper">
+      <button className="scroll-top-btn" onClick={handleClick} title="Back to top">↑</button>
+    </div>
+  )
+}
+
 export default function JsonViewer({ result, activeIndex, onSelectIndex }) {
+  const panelRef = useRef()
+
   if (!result) return <div className="empty-state">📋 Load a log file then run a search</div>
 
   const { internalFolderID, found, totalCount } = result
 
   if (found.length === 0) {
     return (
-      <div className="result-panel">
+      <div className="result-panel" ref={panelRef}>
         <div className="result-meta">
           🔎 Search: <span>{internalFolderID}</span> — <span>0</span> result found out of <span>{totalCount}</span> total requests
         </div>
@@ -335,7 +380,7 @@ export default function JsonViewer({ result, activeIndex, onSelectIndex }) {
   const obj = found[currentIndex]
 
   return (
-    <div className="result-panel">
+    <div className="result-panel" ref={panelRef}>
       <div className="result-meta">
         🔎 <span>{internalFolderID}</span> — <span>{found.length}</span> request{found.length > 1 ? 's' : ''} found out of <span>{totalCount}</span> total
         {found.length === 1 && obj._timestamp && <span className="result-meta-time"> · {obj._timestamp.slice(11, 19)}</span>}
@@ -356,6 +401,7 @@ export default function JsonViewer({ result, activeIndex, onSelectIndex }) {
         </div>
       )}
       <SubTabViewer item={obj} />
+      <ScrollToTopBtn targetRef={panelRef} />
     </div>
   )
 }
