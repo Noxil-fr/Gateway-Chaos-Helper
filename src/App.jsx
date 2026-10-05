@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import FileUploader from './components/FileUploader'
 import SearchBar from './components/SearchBar'
 import TabBar from './components/TabBar'
@@ -29,6 +29,7 @@ export default function App() {
   const [showPatchNote, setShowPatchNote] = useState(false)
   const [fileVersion, setFileVersion] = useState(0)
   const [tabError, setTabError] = useState(null)
+  const resultsRef = useRef(null)
 
   const showTabLimit = () => {
     setTabError(`Tab limit reached (${MAX_TABS} max). Close a tab to open a new one.`)
@@ -51,7 +52,10 @@ export default function App() {
   // A tab is reused only if it holds exactly the same requests (same objects, same order)
   const sameRequests = (a, b) => a.length === b.length && a.every((item, i) => item === b[i])
 
+  // Opened from an error panel ("Open in result"): bring the Results section into view
   const openRequestInTab = (req) => {
+    // Wait for the new tab to render before scrolling
+    requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
     const existing = tabs.find((t) => t.result.found.includes(req))
     if (existing) {
       setActiveTab(existing.id)
@@ -168,7 +172,7 @@ export default function App() {
           <LogIssuesPanel issues={logIssues} onOpenRequest={openRequestInTab} />
         </div>
 
-        <div className="results-section-header">
+        <div className="results-section-header" ref={resultsRef}>
           <span className="results-section-title">Results</span>
           <hr className="results-section-divider" />
         </div>

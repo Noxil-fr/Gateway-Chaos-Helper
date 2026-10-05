@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { normalizeErrorMessage } from '../utils/repairOrderErrors'
 
 export default function FileUploader({ onParsed }) {
   const inputRef = useRef()
@@ -209,9 +210,11 @@ export default function FileUploader({ onParsed }) {
         const message = w.ErrorID ? `[${w.ErrorID}] ${text}` : text
         if (seen.has(message)) continue
         seen.add(message)
+        // Mask only the text: the ErrorID prefix must stay readable ("[200015] … (Reference=…)")
+        const groupMessage = w.ErrorID ? `[${w.ErrorID}] ${normalizeErrorMessage(text)}` : normalizeErrorMessage(text)
         logIssues.push({
           timestamp: req._timestamp, level: 'WARN', scope: req._scope, source: 'SetRepairOrder',
-          message, _fromResponse: true, _request: req,
+          message, groupMessage, _request: req,
         })
       }
     }

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, createContext, useContext } from 'react'
+import { getRepairOrderFailure } from '../utils/repairOrderErrors'
 
 const JsonNavCtx = createContext({ forceOpen: new Set() })
 
@@ -137,8 +138,9 @@ function ResponseBlock({ response, logErrors }) {
   const pretty = JSON.stringify(response, null, 2)
   const isOk = response?.Status === 'OK'
   const warnings = response?.Warnings || []
+  const failure = getRepairOrderFailure(response, logErrors)
   // A generic FAIL ("Operation failed") hides its cause: show the ERROR lines logged under the request scope
-  const causes = !isOk && !warnings.some(w => w.Severity > 0) ? (logErrors || []) : []
+  const causes = failure?.kind === 'technical' ? (logErrors || []) : []
   return (
     <div className="json-block">
       <div className="json-block-toolbar">

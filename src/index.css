@@ -1901,3 +1901,43 @@ div.warning-item.fail-cause { color: var(--pink); }
 /* ── FAIL + warning panels stacked closer than the page sections ── */
 div.error-panels { display: flex; flex-direction: column; gap: 0.5rem; }
 div.error-panels:empty { display: none; }
+
+/* ── FAIL kinds: technical error vs rejected by DMS ──────── */
+div.error-kind-section { display: flex; flex-direction: column; gap: 3px; }
+div.error-kind-section + div.error-kind-section { margin-top: 0.6rem; }
+div.error-kind-header {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+  padding: 0.2rem 0.55rem;
+}
+div.error-kind-section div.error-kind-header { margin: 0.2rem 0 0.15rem; }
+span.error-kind-detail { font-weight: 500; text-transform: none; letter-spacing: 0; opacity: 0.75; }
+div.error-kind-header.kind-technical {
+  background: rgba(243,139,168,0.15);
+  color: var(--pink);
+  border: 1px solid rgba(243,139,168,0.3);
+}
+div.error-kind-header.kind-rejected {
+  background: rgba(203,166,247,0.13);
+  color: #cba6f7;
+  border: 1px solid rgba(203,166,247,0.3);
+}
+
+/* ── Long error groups: ~10 rows visible, scroll for the rest ── */
+div.error-group-body {
+  max-height: 26rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+/* Without this, flex rows shrink to fit the max-height instead of overflowing */
+div.error-group-body > div.error-req-row { flex-shrink: 0; }
+
+/* ── Read me: words colored like in the app ──────────────── */
+span.patchnote-color-red { color: var(--pink); font-weight: 600; }
+span.patchnote-color-violet { color: #cba6f7; font-weight: 600; }
+span.patchnote-color-yellow { color: #f9e2af; font-weight: 600; }
+span.patchnote-color-blue { color: var(--blue); font-weight: 600; }

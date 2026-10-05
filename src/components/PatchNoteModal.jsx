@@ -10,12 +10,16 @@ const NOTES = [
     version: 'v1.5',
     entries: [
       {
-        fr: "Ajout d'un bandeau de warnings (en jaune, distinct du bandeau des requêtes en échec) : il liste les warnings non bloquants des réponses SetRepairOrder, par exemple \"[99] Vehicle without paint ingredient\", ainsi que les erreurs du log liées aux requêtes analysées.",
-        en: "Added a warnings panel (in yellow, distinct from the failed requests panel): it lists the non-blocking warnings of SetRepairOrder responses, such as \"[99] Vehicle without paint ingredient\", along with the log errors tied to the analyzed requests.",
+        fr: "Ajout d'un bandeau de {yellow|warnings} (en {yellow|jaune}, distinct du bandeau des requêtes en échec) : il liste les warnings non bloquants des réponses {blue|SetRepairOrder}, par exemple {yellow|[99] Vehicle without paint ingredient}, ainsi que les erreurs du log liées aux requêtes analysées.",
+        en: "Added a {yellow|warnings} panel (in {yellow|yellow}, distinct from the failed requests panel): it lists the non-blocking warnings of {blue|SetRepairOrder} responses, such as {yellow|[99] Vehicle without paint ingredient}, along with the log errors tied to the analyzed requests.",
       },
       {
-        fr: "Quand une réponse SetRepairOrder indique seulement \"Operation failed\", la vraie erreur trouvée dans le log de la requête (par exemple une erreur SQL) s'affiche dans l'onglet Response et dans le bandeau des requêtes en échec.",
-        en: "When a SetRepairOrder response only says \"Operation failed\", the real error found in the request's log (for example a SQL error) is shown in the Response tab and in the failed requests panel.",
+        fr: "Quand une réponse {blue|SetRepairOrder} indique seulement {red|Operation failed}, la vraie erreur trouvée dans le log de la requête (par exemple une erreur SQL) s'affiche dans l'onglet Response et dans le bandeau des requêtes en échec.",
+        en: "When a {blue|SetRepairOrder} response only says {red|Operation failed}, the real error found in the request's log (for example a SQL error) is shown in the Response tab and in the failed requests panel.",
+      },
+      {
+        fr: "Le bandeau des requêtes en échec est séparé en deux sous-sections : {red|Technical error} (réponse {red|Operation failed}, avec l'erreur trouvée dans le log) et {violet|Rejected by DMS} (warnings bloquants de la réponse, par exemple {violet|[100000] Repair Order locked by other user}).",
+        en: "The failed requests panel is split into two sub-sections: {red|Technical error} ({red|Operation failed} response, with the error found in the log) and {violet|Rejected by DMS} (blocking warnings of the response, such as {violet|[100000] Repair Order locked by other user}).",
       },
     ],
   },
@@ -23,8 +27,8 @@ const NOTES = [
     version: 'v1.4',
     entries: [
       {
-        fr: "Ajout d'une flèche en bas à droite des résultats pour remonter en haut du panneau en un clic.",
-        en: "Added an arrow at the bottom right of the results panel to scroll back to the top in one click.",
+        fr: "Ajout d'une {blue|flèche} en bas à droite des résultats pour remonter en haut du panneau en un clic.",
+        en: "Added an {blue|arrow} at the bottom right of the results panel to scroll back to the top in one click.",
       },
     ],
   },
@@ -32,16 +36,16 @@ const NOTES = [
     version: 'v1.3',
     entries: [
       {
-        fr: "Ajout d'un menu de navigation latéral dans les résultats — liste les jobs et leurs packs, cliquer sur un élément fait défiler jusqu'à lui dans le JSON.",
-        en: "Added a side navigation menu in the results panel — lists jobs and their packs, clicking an item scrolls to it in the JSON.",
+        fr: "Ajout d'un {blue|menu de navigation latéral} dans les résultats — liste les jobs et leurs packs, cliquer sur un élément fait défiler jusqu'à lui dans le JSON.",
+        en: "Added a {blue|side navigation menu} in the results panel — lists jobs and their packs, clicking an item scrolls to it in the JSON.",
       },
       {
-        fr: "Ajout des types de requêtes SetClients et SetEvents, chacun avec ses propres critères de recherche et son bandeau d'erreurs dédié.",
-        en: "Added SetClients and SetEvents query types, each with their own search criteria and dedicated error panel.",
+        fr: "Ajout des types de requêtes {blue|SetClients} et {blue|SetEvents}, chacun avec ses propres critères de recherche et son {red|bandeau d'erreurs} dédié.",
+        en: "Added {blue|SetClients} and {blue|SetEvents} query types, each with their own search criteria and dedicated {red|error panel}.",
       },
       {
-        fr: "Suppression du toggle \"Show failed requests detected\" remplacé par le bouton Show/Hide intégré au bandeau d'erreurs.",
-        en: "Removed the \"Show failed requests detected\" toggle, replaced by the Show/Hide button built into the error panel.",
+        fr: "Suppression du toggle {red|Show failed requests detected} remplacé par le bouton {red|Show/Hide} intégré au {red|bandeau d'erreurs}.",
+        en: "Removed the {red|Show failed requests detected} toggle, replaced by the {red|Show/Hide} button built into the {red|error panel}.",
       },
     ],
   },
@@ -49,8 +53,8 @@ const NOTES = [
     version: 'v1.2',
     entries: [
       {
-        fr: "Deux nouvelles options dans le menu \"Search by\" : afficher une requête aléatoire, ou rechercher par numéro interne du client (Codigo Cliente).",
-        en: "Two new options in the \"Search by\" menu: display a random request, or search by internal client number (Codigo Cliente).",
+        fr: "Deux nouvelles options dans le menu {blue|Search by} : afficher une {blue|requête aléatoire}, ou rechercher par numéro interne du client ({blue|Codigo Cliente}).",
+        en: "Two new options in the {blue|Search by} menu: display a {blue|random request}, or search by internal client number ({blue|Codigo Cliente}).",
       },
     ],
   },
@@ -58,8 +62,8 @@ const NOTES = [
     version: 'v1.1',
     entries: [
       {
-        fr: "Ajout d'une fonctionnalité qui permet de consulter la version de la DMS Gateway d'un client par le SubscriberID.",
-        en: "Added a feature to look up a client's DMS Gateway version using their SubscriberID.",
+        fr: "Ajout d'une fonctionnalité qui permet de consulter la {blue|version de la DMS Gateway} d'un client par le {blue|SubscriberID}.",
+        en: "Added a feature to look up a client's {blue|DMS Gateway version} using their {blue|SubscriberID}.",
       },
     ],
   },
@@ -67,12 +71,21 @@ const NOTES = [
     version: 'v1.0',
     entries: [
       {
-        fr: 'Bienvenue dans Gateway Chaos Helper (GCH) !',
-        en: 'Welcome to Gateway Chaos Helper (GCH) !',
+        fr: 'Bienvenue dans {blue|Gateway Chaos Helper (GCH)} !',
+        en: 'Welcome to {blue|Gateway Chaos Helper (GCH)} !',
       },
     ],
   },
 ]
+
+// "{red|Operation failed}" renders the text in the color the app uses for it
+// (red: errors, violet: rejected by DMS, yellow: warnings, blue: search, navigation and query types)
+function renderColored(text) {
+  return text.split(/(\{(?:red|violet|yellow|blue)\|[^}]+\})/).map((part, i) => {
+    const match = part.match(/^\{(red|violet|yellow|blue)\|([^}]+)\}$/)
+    return match ? <span key={i} className={`patchnote-color-${match[1]}`}>{match[2]}</span> : part
+  })
+}
 
 export default function PatchNoteModal({ onClose }) {
   const [lang, setLang] = useState('en')
@@ -99,7 +112,7 @@ export default function PatchNoteModal({ onClose }) {
               <div className="patchnote-version">{note.version}</div>
               {note.entries.map((entry, i) => (
                 <div key={i} className="patchnote-entry">
-                  <span>{entry[lang]}</span>
+                  <span>{renderColored(entry[lang])}</span>
                 </div>
               ))}
             </div>

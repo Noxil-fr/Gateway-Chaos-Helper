@@ -1,19 +1,20 @@
 import { useState } from 'react'
-import { getRepairOrderErrors, normalizeErrorMessage } from '../utils/repairOrderErrors'
+import { getRepairOrderFailure, normalizeErrorMessage, FAILURE_KINDS } from '../utils/repairOrderErrors'
 
 // ─── SetRepairOrder ───────────────────────────────────────────────────────────
 
 function groupErrors(requests) {
   const groups = {}
   for (const req of requests) {
-    for (const message of getRepairOrderErrors(req._response, req._logErrors)) {
-      if (!groups[message]) groups[message] = []
-      if (!groups[message].find(r => r._scope === req._scope)) groups[message].push(req)
+    const failure = getRepairOrderFailure(req._response, req._logErrors)
+    if (!failure) continue
+    for (const message of failure.messages) {
+      const key = `${failure.kind}|${message}`
+      if (!groups[key]) groups[key] = { kind: failure.kind, message, reqs: [] }
+      if (!groups[key].reqs.find(r => r._scope === req._scope)) groups[key].reqs.push(req)
     }
   }
-  return Object.entries(groups)
-    .sort((a, b) => b[1].length - a[1].length)
-    .map(([message, reqs]) => ({ message, reqs }))
+  return Object.values(groups).sort((a, b) => b.reqs.length - a.reqs.length)
 }
 
 function RequestRow({ req, message, onOpen }) {
@@ -93,7 +94,19 @@ export default function ErrorPanel({ requests, onOpenRequest, visible }) {
         </span>
       )}
     >
-      {groups.map((group, i) => <ErrorGroup key={i} group={group} onOpen={onOpenRequest} />)}
+      {/* Technical errors first: they are usually the ones to escalate */}
+      {['technical', 'rejected'].map(kind => {
+        const kindGroups = groups.filter(g => g.kind === kind)
+        if (kindGroups.length === 0) return null
+        return (
+          <div key={kind} className="error-kind-section">
+            <div className={`error-kind-header kind-${kind}`}>
+              {FAILURE_KINDS[kind].label} <span className="error-kind-detail">— {FAILURE_KINDS[kind].detail}</span>
+            </div>
+            {kindGroups.map((group, i) => <ErrorGroup key={i} group={group} onOpen={onOpenRequest} />)}
+          </div>
+        )
+      })}
     </ErrorPanelShell>
   )
 }
@@ -178,8 +191,8 @@ export function SetEventsErrorPanel({ requests, onOpenRequest, visible }) {
 function groupLogIssues(issues) {
   const groups = {}
   for (const issue of issues) {
-    // Response warnings are already generic ("[99] Vehicle without paint ingredient…"): masking would hide their ErrorID
-    const message = issue._fromResponse ? issue.message : normalizeErrorMessage(issue.message)
+    // Response warnings come with their own grouping message, which keeps the ErrorID unmasked
+    const message = issue.groupMessage || normalizeErrorMessage(issue.message)
     const key = `${issue.level}|${message}`
     if (!groups[key]) groups[key] = { level: issue.level, message, issues: [] }
     groups[key].issues.push(issue)
