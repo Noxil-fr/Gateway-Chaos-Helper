@@ -1,20 +1,24 @@
-export async function fetchSubscriberData(subscriber) {
-  const response = await fetch(`/api/gateway?subscriber=${encodeURIComponent(subscriber)}`)
-  const data = await response.json()
-  if (!response.ok) throw new Error(data.error || `HTTP error: ${response.status}`)
+// Vercel can answer with an HTML page (timeout, crash), so the body is not guaranteed to be JSON
+async function getJson(url) {
+  const response = await fetch(url)
+  let data = null
+  try {
+    data = await response.json()
+  } catch {
+    if (response.ok) throw new Error('Invalid response from server')
+  }
+  if (!response.ok) throw new Error(data?.error || `Server error (HTTP ${response.status})`)
   return data
 }
 
-export async function fetchClientData(clientName) {
-  const response = await fetch(`/api/gateway?client=${encodeURIComponent(clientName)}`)
-  const data = await response.json()
-  if (!response.ok) throw new Error(data.error || `HTTP error: ${response.status}`)
-  return data
+export function fetchSubscriberData(subscriber) {
+  return getJson(`/api/gateway?subscriber=${encodeURIComponent(subscriber)}`)
 }
 
-export async function fetchClients() {
-  const response = await fetch('/api/clients')
-  const data = await response.json()
-  if (!response.ok) throw new Error(data.error || `HTTP error: ${response.status}`)
-  return data
+export function fetchClientData(clientName) {
+  return getJson(`/api/gateway?client=${encodeURIComponent(clientName)}`)
+}
+
+export function fetchClients() {
+  return getJson('/api/clients')
 }

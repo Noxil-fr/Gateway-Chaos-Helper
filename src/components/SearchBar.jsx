@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import CustomSelect from './CustomSelect'
+import { getRepairOrderErrors } from '../utils/repairOrderErrors'
 
 const QUERY_TYPES = [
   { value: 'SetRepairOrder', label: 'SetRepairOrder' },
@@ -159,17 +160,14 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
   const { failedCount, errorCount } = useMemo(() => {
     if (queryType === 'SetRepairOrder') {
       const typed = requests.filter(r => r._queryType === 'SetRepairOrder')
-      const failed = typed.filter(r => {
-        const resp = r._response
-        if (!resp || resp.Status !== 'FAIL') return false
-        return (resp.Warnings || []).some(w => w.Severity > 0)
-      })
-      let errors = 0
-      for (const r of failed) {
-        const msgs = new Set((r._response.Warnings || []).filter(w => w.Severity > 0).map(w => (w.ErrorMessage || '').trim()).filter(Boolean))
-        errors += msgs.size
+      let failedCount = 0, errorCount = 0
+      for (const r of typed) {
+        const msgs = getRepairOrderErrors(r._response, r._logErrors)
+        if (msgs.length === 0) continue
+        failedCount++
+        errorCount += msgs.length
       }
-      return { failedCount: failed.length, errorCount: errors }
+      return { failedCount, errorCount }
     }
     if (queryType === 'SetEvents') {
       const typed = requests.filter(r => r._queryType === 'SetEvents')
@@ -256,6 +254,14 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
     setShowRawPopup(false)
   }
 
+  const isInTimeRange = (r) => {
+    if (!r._timestamp) return true
+    const time = r._timestamp.slice(11, 16)
+    if (timeStart && time < timeStart) return false
+    if (timeEnd && time > timeEnd) return false
+    return true
+  }
+
   const handleApiSearch = () => { // ✅ renommé
     let found = [], label = ''
     const typedRequests = queryType ? requests.filter(r => r._queryType === queryType) : requests
@@ -293,7 +299,7 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
     } else if (searchMode === 'clientID') {
       if (!searchValue.trim()) return
       label = searchValue.trim()
-      found = typedRequests.filter((r) => String(r.InternalClientID || '') === label)
+      found = typedRequests.filter((r) => String(r.InternalClientID || r.Client?.InternalClientID || '') === label)
       saveToHistory(queryType === 'SetClients' ? 'sc_clientID' : 'clientID', searchValue.trim())
     } else if (searchMode === 'lastName') {
       if (!searchValue.trim()) return
@@ -331,20 +337,17 @@ export default function SearchBar({ requests, onResult, totalCount, logStart, lo
       found = typedRequests.filter(r => (r.Events || []).some(e => String(e.IdEventBus || '') === label))
       saveToHistory('ev_eventBusID', label)
     } else if (searchMode === 'random') {
-      if (typedRequests.length === 0) return
-      const pick = typedRequests[Math.floor(Math.random() * typedRequests.length)]
+      // Pick among requests within the time range, otherwise the filter below could discard the pick
+      const candidates = typedRequests.filter(isInTimeRange)
+      if (candidates.length === 0) {
+        onResult({ internalFolderID: 'random', found: [], totalCount })
+        return
+      }
+      const pick = candidates[Math.floor(Math.random() * candidates.length)]
       label = pick.InternalFolderID || pick.InternalAppointmentID || pick.InternalClientID || pick._scope?.slice(0, 8) || 'random'
       found = [pick]
     }
-    if (timeStart || timeEnd) {
-      found = found.filter((r) => {
-        if (!r._timestamp) return true
-        const time = r._timestamp.slice(11, 16)
-        if (timeStart && time < timeStart) return false
-        if (timeEnd && time > timeEnd) return false
-        return true
-      })
-    }
+    found = found.filter(isInTimeRange)
     onResult({ internalFolderID: label, found, totalCount })
   }
 

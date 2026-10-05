@@ -10,10 +10,11 @@ export default function GatewayPanel() {
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [clientsError, setClientsError] = useState(null)
   const scrollRef = useRef()
 
   useEffect(() => {
-    fetchClients().then(setClients).catch(() => {})
+    fetchClients().then(setClients).catch((err) => setClientsError(err.message))
   }, [])
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export default function GatewayPanel() {
           </div>
 
           <div className="field">
-            <label>Client</label>
+            <label>Client {clientsError && <span className="optional">— list unavailable ({clientsError})</span>}</label>
             <CustomSelect
               options={clients.map(c => ({ value: c, label: c }))}
               value={selectedClient}

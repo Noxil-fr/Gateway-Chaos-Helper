@@ -3,7 +3,7 @@ import FileUploader from './components/FileUploader'
 import SearchBar from './components/SearchBar'
 import TabBar from './components/TabBar'
 import JsonViewer from './components/JsonViewer'
-import ErrorPanel, { SetEventsErrorPanel } from './components/ErrorPanel'
+import ErrorPanel, { SetEventsErrorPanel, LogIssuesPanel } from './components/ErrorPanel'
 import MainTabs from './components/MainTabs'
 import GatewayPanel from './components/GatewayPanel'
 import PatchNoteModal from './components/PatchNoteModal'
@@ -16,6 +16,7 @@ const MAX_TABS = 16
 export default function App() {
   const [requests, setRequests] = useState([])
   const [totalCount, setTotalCount] = useState(0)
+  const [logIssues, setLogIssues] = useState([])
   const [tabs, setTabs] = useState([])
   const [activeTab, setActiveTab] = useState(null)
   const [subIndexes, setSubIndexes] = useState({})
@@ -35,8 +36,9 @@ export default function App() {
   }
 
 
-  const handleParsed = (parsed, firstTimestamp, lastTimestamp) => {
+  const handleParsed = (parsed, firstTimestamp, lastTimestamp, issues) => {
     setRequests(parsed)
+    setLogIssues(issues || [])
     setTotalCount(parsed.length)
     setTabs([])
     setActiveTab(null)
@@ -46,22 +48,22 @@ export default function App() {
     setFileVersion(v => v + 1)
   }
 
+  // A tab is reused only if it holds exactly the same requests (same objects, same order)
+  const sameRequests = (a, b) => a.length === b.length && a.every((item, i) => item === b[i])
+
   const openRequestInTab = (req) => {
+    const existing = tabs.find((t) => t.result.found.includes(req))
+    if (existing) {
+      setActiveTab(existing.id)
+      setSubIndexes((prev) => ({ ...prev, [existing.id]: existing.result.found.indexOf(req) }))
+      return
+    }
     const label = req.InternalFolderID || req._scope?.slice(0, 8) || 'unknown'
-    const existing = tabs.find((t) => t.internalFolderID === label)
-    if (existing) { setActiveTab(existing.id); return }
-    if (tabs.length >= MAX_TABS) { showTabLimit(); return }
-    const id = ++tabCounter
-    setTabs((prev) => [...prev, {
-      id, internalFolderID: label, label,
-      result: { internalFolderID: label, found: [req], totalCount },
-    }])
-    setActiveTab(id)
-    setSubIndexes((prev) => ({ ...prev, [id]: 0 }))
+    openFoundInTab(label, [req])
   }
 
   const openFoundInTab = (internalFolderID, found) => {
-    const existing = tabs.find((t) => t.internalFolderID === internalFolderID)
+    const existing = tabs.find((t) => t.internalFolderID === internalFolderID && sameRequests(t.result.found, found))
     if (existing) { setActiveTab(existing.id); return }
     if (tabs.length >= MAX_TABS) { showTabLimit(); return }
     const id = ++tabCounter
@@ -86,17 +88,7 @@ export default function App() {
   const handleSelectionConfirm = (selectedItems) => {
     setPopup(null)
     if (selectedItems.length === 0) return
-    const internalFolderID = popup.internalFolderID
-    const existing = tabs.find((t) => t.internalFolderID === internalFolderID)
-    if (existing) { setActiveTab(existing.id); return }
-    if (tabs.length >= MAX_TABS) { showTabLimit(); return }
-    const id = ++tabCounter
-    setTabs((prev) => [...prev, {
-      id, internalFolderID, label: internalFolderID,
-      result: { internalFolderID, found: selectedItems, totalCount },
-    }])
-    setActiveTab(id)
-    setSubIndexes((prev) => ({ ...prev, [id]: 0 }))
+    openFoundInTab(popup.internalFolderID, selectedItems)
   }
 
   const openRawRequestInTab = (rawObj) => {
@@ -138,7 +130,7 @@ export default function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1>Gateway Chaos Helper <span className="version">v1.4</span><button className="patchnote-btn" onClick={() => setShowPatchNote(true)}>Read me</button></h1>
+        <h1>Gateway Chaos Helper <span className="version">v1.5</span><button className="patchnote-btn" onClick={() => setShowPatchNote(true)}>Read me</button></h1>
       </div>
 
       <FileUploader onParsed={handleParsed} />
@@ -158,20 +150,23 @@ export default function App() {
           onQueryTypeChange={setActiveQueryType}
         />
 
-        {activeQueryType === 'SetRepairOrder' && (
-          <ErrorPanel
-            requests={requests}
-            onOpenRequest={openRequestInTab}
-            visible={true}
-          />
-        )}
-        {activeQueryType === 'SetEvents' && (
-          <SetEventsErrorPanel
-            requests={requests}
-            onOpenRequest={openRequestInTab}
-            visible={true}
-          />
-        )}
+        <div className="error-panels">
+          {activeQueryType === 'SetRepairOrder' && (
+            <ErrorPanel
+              requests={requests}
+              onOpenRequest={openRequestInTab}
+              visible={true}
+            />
+          )}
+          {activeQueryType === 'SetEvents' && (
+            <SetEventsErrorPanel
+              requests={requests}
+              onOpenRequest={openRequestInTab}
+              visible={true}
+            />
+          )}
+          <LogIssuesPanel issues={logIssues} onOpenRequest={openRequestInTab} />
+        </div>
 
         <div className="results-section-header">
           <span className="results-section-title">Results</span>
@@ -188,6 +183,7 @@ export default function App() {
         {tabError && <div className="tab-limit-error">{tabError}</div>}
 
         <JsonViewer
+          key={activeTab}
           result={activeResult}
           activeIndex={activeIndex}
           onSelectIndex={(i) => handleSelectSubIndex(activeTab, i)}

@@ -1,20 +1,12 @@
 import { useState } from 'react'
+import { getRepairOrderErrors, normalizeErrorMessage } from '../utils/repairOrderErrors'
 
 // ─── SetRepairOrder ───────────────────────────────────────────────────────────
 
 function groupErrors(requests) {
   const groups = {}
   for (const req of requests) {
-    const resp = req._response
-    if (!resp || resp.Status !== 'FAIL') continue
-    const warnings = resp.Warnings || []
-    const relevant = warnings.filter(w => w.Severity > 0)
-    if (relevant.length === 0) continue
-    const seen = new Set()
-    for (const w of relevant) {
-      const message = w.ErrorMessage || 'Unknown warning'
-      if (seen.has(message)) continue
-      seen.add(message)
+    for (const message of getRepairOrderErrors(req._response, req._logErrors)) {
       if (!groups[message]) groups[message] = []
       if (!groups[message].find(r => r._scope === req._scope)) groups[message].push(req)
     }
@@ -24,11 +16,13 @@ function groupErrors(requests) {
     .map(([message, reqs]) => ({ message, reqs }))
 }
 
-function RequestRow({ req, onOpen }) {
+function RequestRow({ req, message, onOpen }) {
   const emp = req.RecptionistIDIn || req.RecptionistIDOut || '—'
   const folder = req.InternalFolderID || '—'
   const time = req._timestamp ? req._timestamp.slice(11, 19) : '—'
   const scope = req._scope || '—'
+  // The group shows the masked log error: give back the actual value (e.g. the ItemID that overflowed)
+  const detail = (req._logErrors || []).find(e => e !== message && normalizeErrorMessage(e) === message)
   return (
     <div className="error-req-row">
       <div className="error-req-info">
@@ -36,6 +30,7 @@ function RequestRow({ req, onOpen }) {
         <span className="error-req-emp">{emp}</span>
         <span className="error-req-time">{time}</span>
         <span className="error-req-scope">{scope}</span>
+        {detail && <span className="error-req-scope">{detail}</span>}
       </div>
       <button className="error-req-open" onClick={() => onOpen(req)}>Open in result</button>
     </div>
@@ -53,18 +48,18 @@ function ErrorGroup({ group, onOpen }) {
       </div>
       {expanded && (
         <div className="error-group-body">
-          {group.reqs.map((req, i) => <RequestRow key={i} req={req} onOpen={onOpen} />)}
+          {group.reqs.map((req, i) => <RequestRow key={i} req={req} message={group.message} onOpen={onOpen} />)}
         </div>
       )}
     </div>
   )
 }
 
-function ErrorPanelShell({ title, badge, errorsBadge, children, visible }) {
+function ErrorPanelShell({ title, badge, errorsBadge, children, visible, variant }) {
   const [collapsed, setCollapsed] = useState(true)
   if (!visible) return null
   return (
-    <div className="error-panel-section">
+    <div className={`error-panel-section${variant ? ` ${variant}` : ''}`}>
       <div className="error-panel-header">
         <span className="error-panel-icon">⚠</span>
         <span className="error-panel-title">{title}</span>
@@ -174,6 +169,83 @@ export function SetEventsErrorPanel({ requests, onOpenRequest, visible }) {
       badge={`${groups.length} error type${groups.length > 1 ? 's' : ''}`}
     >
       {groups.map((group, i) => <SetEventsErrorGroup key={i} group={group} onOpen={onOpenRequest} />)}
+    </ErrorPanelShell>
+  )
+}
+
+// ─── Raw ERROR / WARN log lines ───────────────────────────────────────────────
+
+function groupLogIssues(issues) {
+  const groups = {}
+  for (const issue of issues) {
+    // Response warnings are already generic ("[99] Vehicle without paint ingredient…"): masking would hide their ErrorID
+    const message = issue._fromResponse ? issue.message : normalizeErrorMessage(issue.message)
+    const key = `${issue.level}|${message}`
+    if (!groups[key]) groups[key] = { level: issue.level, message, issues: [] }
+    groups[key].issues.push(issue)
+  }
+  return Object.values(groups).sort((a, b) =>
+    (a.level === 'ERROR' ? 0 : 1) - (b.level === 'ERROR' ? 0 : 1) || b.issues.length - a.issues.length)
+}
+
+function LogIssueRow({ issue, showMessage, onOpen }) {
+  const source = issue.source ? issue.source.split('.').pop() : '—'
+  const time = issue.timestamp ? issue.timestamp.slice(11, 19) : '—'
+  const req = issue._request
+  const target = req?._queryType || source
+  return (
+    <div className="error-req-row">
+      <div className="error-req-info">
+        <span className="error-req-folder">{req?.InternalFolderID || target}</span>
+        {req?.InternalFolderID && <span className="error-req-emp">{target}</span>}
+        <span className="error-req-time">{time}</span>
+        <span className="error-req-scope">{issue.scope || '—'}</span>
+        {showMessage && <span className="error-req-scope">{issue.message}</span>}
+      </div>
+      {req && <button className="error-req-open" onClick={() => onOpen(req)}>Open in result</button>}
+    </div>
+  )
+}
+
+function LogIssueGroup({ group, onOpen }) {
+  const [expanded, setExpanded] = useState(false)
+  const showMessage = group.issues.some(i => i.message !== group.message)
+  return (
+    <div className="error-group">
+      <div className="error-group-header" onClick={() => setExpanded(e => !e)}>
+        <span className="error-group-toggle">{expanded ? '▼' : '▶'}</span>
+        <span className={`error-group-level level-${group.level.toLowerCase()}`}>{group.level === 'WARN' ? '⚠' : group.level}</span>
+        <span className="error-group-message">{group.message}</span>
+        <span className="error-group-count">{group.issues.length}</span>
+      </div>
+      {expanded && (
+        <div className="error-group-body">
+          {group.issues.map((issue, i) => <LogIssueRow key={i} issue={issue} showMessage={showMessage} onOpen={onOpen} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function LogIssuesPanel({ issues, onOpenRequest }) {
+  if (!issues || issues.length === 0) return null
+  const groups = groupLogIssues(issues)
+  const errorCount = issues.filter(i => i.level === 'ERROR').length
+  const warnCount = issues.length - errorCount
+
+  const parts = []
+  if (warnCount > 0) parts.push(<><strong>{warnCount}</strong> response warning{warnCount > 1 ? 's' : ''}</>)
+  if (errorCount > 0) parts.push(<><strong>{errorCount}</strong> log error{errorCount > 1 ? 's' : ''}</>)
+
+  // Non-blocking: styled apart from the FAIL panel so it does not read as failed requests
+  return (
+    <ErrorPanelShell
+      visible={true}
+      variant="warn"
+      title={<>{parts.map((p, i) => <span key={i}>{i > 0 && ' / '}{p}</span>)}</>}
+      badge={`${groups.length} message type${groups.length > 1 ? 's' : ''}`}
+    >
+      {groups.map((group, i) => <LogIssueGroup key={i} group={group} onOpen={onOpenRequest} />)}
     </ErrorPanelShell>
   )
 }

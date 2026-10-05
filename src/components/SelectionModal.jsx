@@ -19,7 +19,7 @@ export default function SelectionModal({ internalFolderID, found, totalCount, on
   }
 
   const handleConfirm = () => {
-    const items = [...selected].map(i => found[i])
+    const items = [...selected].sort((a, b) => a - b).map(i => found[i])
     onConfirm(items)
   }
 

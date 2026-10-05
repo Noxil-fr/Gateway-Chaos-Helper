@@ -4,6 +4,7 @@ export default function FileUploader({ onParsed }) {
   const inputRef = useRef()
   const [filename, setFilename] = useState(null)
   const [stats, setStats] = useState(null)
+  const [readError, setReadError] = useState(null)
   const [dragging, setDragging] = useState(false)
 
   const extractTimestamp = (line) => {
@@ -26,7 +27,34 @@ export default function FileUploader({ onParsed }) {
     // Message = tout ce qui est après le 4ème | et avant le dernier |
     const parts = line.split('|')
     if (parts.length < 5) return line
+    // First line of a multi-line entry: no closing " |Source|" yet, keep everything
+    if (!line.trimEnd().endsWith('|')) return parts.slice(4).join('|').trim()
     return parts.slice(4, parts.length - 1).join('|').trim()
+  }
+
+  // Line layout: timestamp|LEVEL|companyID|scope|correlation_id|message |Source|
+  // A multi-line entry (exception text) only gets its " |Source|" on its last line: the issue stays open until then
+  const extractIssue = (line, ts, level, scope) => {
+    const parts = line.trimEnd().split('|')
+    const closed = parts.length >= 7 && line.trimEnd().endsWith('|')
+    return {
+      timestamp: ts, level, scope,
+      source: closed ? parts[parts.length - 2].trim() : '',
+      message: (closed ? parts.slice(5, parts.length - 2) : parts.slice(5)).join('|').trim(),
+      _open: !closed,
+    }
+  }
+
+  const appendIssueLine = (issue, line) => {
+    const text = line.trimEnd()
+    const parts = text.split('|')
+    const closed = parts.length >= 3 && text.endsWith('|')
+    const tail = (closed ? parts.slice(0, parts.length - 2) : parts).join('|').trim()
+    if (tail) issue.message = `${issue.message} ${tail}`
+    if (closed) {
+      issue.source = parts[parts.length - 2].trim()
+      issue._open = false
+    }
   }
 
   const extractJson = (line, marker) => {
@@ -55,25 +83,38 @@ export default function FileUploader({ onParsed }) {
     // Pass 1: collect all lines per scope + extract requests
     const requests = []
     const scopeLines = {} // scope -> [{ timestamp, level, message, raw }]
+    let logIssues = [] // every ERROR line, whatever the request type, + SetRepairOrder response warnings
+    let openIssue = null
 
     for (const line of lines) {
       if (!line.trim()) continue
 
       const ts = extractTimestamp(line)
+      if (openIssue) {
+        if (ts) openIssue._open = false
+        else appendIssueLine(openIssue, line)
+        if (!openIssue._open) openIssue = null
+      }
       if (ts) {
         if (!firstTimestamp) firstTimestamp = ts
         lastTimestamp = ts
       }
 
       const scope = extractScope(line)
+      const level = extractLevel(line)
       if (scope) {
         if (!scopeLines[scope]) scopeLines[scope] = []
         scopeLines[scope].push({
           timestamp: ts,
-          level: extractLevel(line),
+          level,
           message: extractMessage(line),
-          raw: line,
         })
+      }
+      // Raw WARN lines are internal noise (e.g. "Failed to get the list of Jobs"): warnings come from the responses below
+      if (ts && level === 'ERROR') {
+        const issue = extractIssue(line, ts, level, scope)
+        logIssues.push(issue)
+        if (issue._open) openIssue = issue
       }
 
       if (line.includes('Call SetRepairOrder Params')) {
@@ -140,22 +181,71 @@ export default function FileUploader({ onParsed }) {
       }
     }
 
-    return { results: requests, firstTimestamp, lastTimestamp }
+    // Keep only the ERROR lines of a parsed request (a GetRepairOrder error, for instance, is not one of ours).
+    // Those of a failed SetRepairOrder are its real cause behind "Operation failed": they go to the FAIL panel instead
+    const requestByScope = {}
+    for (const req of requests) if (req._scope && !requestByScope[req._scope]) requestByScope[req._scope] = req
+    const requestErrors = []
+    for (const issue of logIssues) {
+      const req = issue.scope && requestByScope[issue.scope]
+      if (!req) continue
+      if (req._queryType === 'SetRepairOrder' && req._response?.Status === 'FAIL') {
+        if (!req._logErrors) req._logErrors = []
+        req._logErrors.push(issue.message)
+        continue
+      }
+      issue._request = req
+      requestErrors.push(issue)
+    }
+    logIssues = requestErrors
+
+    // Non-blocking warnings of SetRepairOrder responses (blocking ones already feed the FAIL error panel)
+    for (const req of requests) {
+      if (req._queryType !== 'SetRepairOrder' || !req._response) continue
+      const seen = new Set()
+      for (const w of req._response.Warnings || []) {
+        if (w.Severity > 0) continue
+        const text = (w.ErrorMessage || '').trim() || 'Unknown warning'
+        const message = w.ErrorID ? `[${w.ErrorID}] ${text}` : text
+        if (seen.has(message)) continue
+        seen.add(message)
+        logIssues.push({
+          timestamp: req._timestamp, level: 'WARN', scope: req._scope, source: 'SetRepairOrder',
+          message, _fromResponse: true, _request: req,
+        })
+      }
+    }
+
+    return { results: requests, firstTimestamp, lastTimestamp, logIssues }
   }
 
   const handleFile = (file) => {
     if (!file) return
     setFilename(file.name)
+    setStats(null)
+    setReadError(null)
+    const sizeMB = Math.round(file.size / 1e6)
     const reader = new FileReader()
     reader.onload = (e) => {
-      const { results, firstTimestamp, lastTimestamp } = parseLog(e.target.result)
+      let parsed
+      try {
+        parsed = parseLog(e.target.result)
+      } catch (err) {
+        // Very large files can exceed the browser's memory or string limits
+        setReadError(`Could not analyze this file (${sizeMB} MB): ${err.message}`)
+        return
+      }
+      const { results, firstTimestamp, lastTimestamp, logIssues } = parsed
       const typeCounts = {}
       for (const r of results) {
         const qt = r._queryType || 'unknown'
         typeCounts[qt] = (typeCounts[qt] || 0) + 1
       }
       setStats({ total: results.length, typeCounts })
-      onParsed(results, firstTimestamp, lastTimestamp)
+      onParsed(results, firstTimestamp, lastTimestamp, logIssues)
+    }
+    reader.onerror = () => {
+      setReadError(`Could not read this file (${sizeMB} MB)${reader.error ? `: ${reader.error.message}` : ''}`)
     }
     reader.readAsText(file)
   }
@@ -177,7 +267,8 @@ export default function FileUploader({ onParsed }) {
     >
       <input ref={inputRef} type="file" accept=".log,.txt" onChange={onInputChange} />
       <div>📂 Drop your <strong>.log</strong> DMS Gateway file here, or click to browse</div>
-      {filename && <div className="filename">✅ {filename}</div>}
+      {filename && <div className="filename">{readError ? '❌' : '✅'} {filename}</div>}
+      {readError && <div className="inline-error">{readError}</div>}
       {stats !== null && (
         <div className="stats">
           <span>{stats.total} request{stats.total > 1 ? 's' : ''} found</span>

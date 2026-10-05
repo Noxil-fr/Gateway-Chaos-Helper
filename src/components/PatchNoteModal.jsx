@@ -7,6 +7,19 @@ const INTRO = {
 
 const NOTES = [
   {
+    version: 'v1.5',
+    entries: [
+      {
+        fr: "Ajout d'un bandeau de warnings (en jaune, distinct du bandeau des requêtes en échec) : il liste les warnings non bloquants des réponses SetRepairOrder, par exemple \"[99] Vehicle without paint ingredient\", ainsi que les erreurs du log liées aux requêtes analysées.",
+        en: "Added a warnings panel (in yellow, distinct from the failed requests panel): it lists the non-blocking warnings of SetRepairOrder responses, such as \"[99] Vehicle without paint ingredient\", along with the log errors tied to the analyzed requests.",
+      },
+      {
+        fr: "Quand une réponse SetRepairOrder indique seulement \"Operation failed\", la vraie erreur trouvée dans le log de la requête (par exemple une erreur SQL) s'affiche dans l'onglet Response et dans le bandeau des requêtes en échec.",
+        en: "When a SetRepairOrder response only says \"Operation failed\", the real error found in the request's log (for example a SQL error) is shown in the Response tab and in the failed requests panel.",
+      },
+    ],
+  },
+  {
     version: 'v1.4',
     entries: [
       {

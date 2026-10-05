@@ -133,14 +133,21 @@ function JsonBlock({ obj, navTarget, forceOpen }) {
   )
 }
 
-function ResponseBlock({ response }) {
+function ResponseBlock({ response, logErrors }) {
   const pretty = JSON.stringify(response, null, 2)
   const isOk = response?.Status === 'OK'
   const warnings = response?.Warnings || []
+  // A generic FAIL ("Operation failed") hides its cause: show the ERROR lines logged under the request scope
+  const causes = !isOk && !warnings.some(w => w.Severity > 0) ? (logErrors || []) : []
   return (
     <div className="json-block">
       <div className="json-block-toolbar">
         <div className={`response-badge ${isOk ? 'ok' : 'fail'}`}>{isOk ? '✓ OK' : '✗ FAIL'}</div>
+        {causes.length > 0 && (
+          <div className="warning-list">
+            {causes.map((c, i) => <div key={i} className="warning-item fail-cause">✗ {c}</div>)}
+          </div>
+        )}
         {warnings.length > 0 && (
           <div className="warning-list">
             {warnings.map((w, i) => (
@@ -335,7 +342,7 @@ function SubTabViewer({ item }) {
           <JsonBlock obj={item} navTarget={navTarget} forceOpen={forceOpen} />
         </div>
       )}
-      {activeInner === 'response' && hasResponse && <ResponseBlock response={item._response} />}
+      {activeInner === 'response' && hasResponse && <ResponseBlock response={item._response} logErrors={item._logErrors} />}
       {activeInner === 'response' && !hasResponse && <div className="empty-state">No response found for this request.</div>}
       {activeInner === 'logs' && <LogsBlock logs={item._scopeLogs} />}
     </div>
@@ -371,7 +378,7 @@ export default function JsonViewer({ result, activeIndex, onSelectIndex }) {
         <div className="result-meta">
           🔎 Search: <span>{internalFolderID}</span> — <span>0</span> result found out of <span>{totalCount}</span> total requests
         </div>
-        <div className="empty-state">❌ No request found for this OR</div>
+        <div className="empty-state">❌ No request found for this search</div>
       </div>
     )
   }
@@ -400,7 +407,7 @@ export default function JsonViewer({ result, activeIndex, onSelectIndex }) {
           ))}
         </div>
       )}
-      <SubTabViewer item={obj} />
+      <SubTabViewer key={currentIndex} item={obj} />
       <ScrollToTopBtn targetRef={panelRef} />
     </div>
   )
