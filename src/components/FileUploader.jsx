@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { normalizeErrorMessage } from '../utils/repairOrderErrors'
 
-// Shown while the (blocking) analysis runs: one is picked per file, the text cannot change until it ends
-const ANALYZING_QUOTES = [
+// One is picked per file and shown for the whole loading (the text cannot change while the analysis blocks the page)
+const LOADING_QUOTES = [
+  'Jumping to hyperspace…',
   'Searching the Jedi Archives…',
   'Scanning the logs, Master Jedi…',
   'Use the Force… the logs are being read',
@@ -55,7 +57,7 @@ export default function FileUploader({ onParsed }) {
   const [stats, setStats] = useState(null)
   const [readError, setReadError] = useState(null)
   const [dragging, setDragging] = useState(false)
-  const [loading, setLoading] = useState(null) // null | { phase: 'reading', pct, color } | { phase: 'analyzing', quote, color }
+  const [loading, setLoading] = useState(null) // null | { phase: 'reading' | 'analyzing', pct, color, quote }
 
   const extractTimestamp = (line) => {
     const match = line.match(/^(\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2})/)
@@ -289,7 +291,12 @@ export default function FileUploader({ onParsed }) {
     setFilename(file.name)
     setStats(null)
     setReadError(null)
-    setLoading({ phase: 'reading', pct: 0, color: SABER_COLORS[Math.floor(Math.random() * SABER_COLORS.length)] })
+    setLoading({
+      phase: 'reading',
+      pct: 0,
+      color: SABER_COLORS[Math.floor(Math.random() * SABER_COLORS.length)],
+      quote: LOADING_QUOTES[Math.floor(Math.random() * LOADING_QUOTES.length)],
+    })
     const sizeMB = Math.round(file.size / 1e6)
     const reader = new FileReader()
     reader.onprogress = (e) => {
@@ -297,9 +304,9 @@ export default function FileUploader({ onParsed }) {
     }
     reader.onload = (e) => {
       const text = e.target.result
-      setLoading(l => ({ ...l, phase: 'analyzing', quote: ANALYZING_QUOTES[Math.floor(Math.random() * ANALYZING_QUOTES.length)] }))
-      // parseLog blocks the page: let the "Analyzing" state paint first
-      requestAnimationFrame(() => setTimeout(() => {
+      // parseLog blocks the page: commit the "analyzing" state now, then wait two frames so it is actually painted
+      flushSync(() => setLoading(l => ({ ...l, phase: 'analyzing' })))
+      requestAnimationFrame(() => requestAnimationFrame(() => {
         let parsed
         try {
           parsed = parseLog(text)
@@ -318,7 +325,7 @@ export default function FileUploader({ onParsed }) {
         setStats({ total: results.length, typeCounts })
         setLoading(null)
         onParsed(results, firstTimestamp, lastTimestamp, logIssues)
-      }, 0))
+      }))
     }
     reader.onerror = () => {
       setReadError(`Could not read this file (${sizeMB} MB)${reader.error ? `: ${reader.error.message}` : ''}`)
@@ -354,10 +361,10 @@ export default function FileUploader({ onParsed }) {
             </div>
           </div>
           <div className="upload-loading-text">
-            {loading.phase === 'reading' ? `Jumping to hyperspace… ${loading.pct}%` : loading.quote}
+            {loading.phase === 'reading' ? `${loading.quote} ${loading.pct}%` : loading.quote}
           </div>
           <div className="upload-loading-hint">
-            {loading.phase === 'reading' ? filename : 'Patience you must have, large files take several seconds.'}
+            {loading.phase === 'reading' ? `Reading ${filename}` : 'Analyzing… patience you must have, large files take several seconds.'}
           </div>
         </div>
       ) : filename && <div className="filename">{readError ? '❌' : '✅'} {filename}</div>}
