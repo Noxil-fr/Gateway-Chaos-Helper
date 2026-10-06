@@ -6,6 +6,8 @@ import { getRepairOrderFailure, normalizeErrorMessage, FAILURE_KINDS } from '../
 function groupErrors(requests) {
   const groups = {}
   for (const req of requests) {
+    // GetRepairOrder now has a response too: a FAIL there is not a failed SetRepairOrder
+    if (req._queryType !== 'SetRepairOrder') continue
     const failure = getRepairOrderFailure(req._response, req._logErrors)
     if (!failure) continue
     for (const message of failure.messages) {

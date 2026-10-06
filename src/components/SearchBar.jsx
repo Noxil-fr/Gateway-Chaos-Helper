@@ -7,6 +7,7 @@ const QUERY_TYPES = [
   { value: 'SetWorkShopAppointmentV2', label: 'SetWorkShopAppointmentV2' },
   { value: 'SetClients', label: 'SetClients' },
   { value: 'SetEvents', label: 'SetEvents' },
+  { value: 'GetRepairOrder', label: 'GetRepairOrder' },
 ]
 
 const SEARCH_MODES_BY_QUERY = {
@@ -37,6 +38,11 @@ const SEARCH_MODES_BY_QUERY = {
     { value: 'random', label: 'Random request', pin: true },
     { value: 'subscriberID', label: 'Subscriber ID' },
     { value: 'eventBusID', label: 'IDEventBus' },
+  ],
+  // The call only carries the folder ID; field config and history are shared with SetRepairOrder
+  GetRepairOrder: [
+    { value: 'random', label: 'Random request', pin: true },
+    { value: 'folderID', label: 'Internal ID (Keys)' },
   ],
 }
 

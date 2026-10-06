@@ -7,6 +7,15 @@ const INTRO = {
 
 const NOTES = [
   {
+    version: 'v1.6',
+    entries: [
+      {
+        fr: "Ajout du type de requête {blue|GetRepairOrder}, avec une recherche par {blue|Internal ID (Keys)} ou une {blue|requête aléatoire}. Dans les résultats, l'onglet Request affiche toutes les lignes de log de l'appel et l'onglet Response affiche sa ligne Result. Les erreurs du log liées à ces requêtes s'affichent dans le bandeau des {yellow|warnings} quand GetRepairOrder est sélectionné.",
+        en: "Added the {blue|GetRepairOrder} query type, searchable by {blue|Internal ID (Keys)} or as a {blue|random request}. In the results, the Request tab shows all the log lines of the call and the Response tab shows its Result line. The log errors tied to these requests appear in the {yellow|warnings} panel when GetRepairOrder is selected.",
+      },
+    ],
+  },
+  {
     version: 'v1.5',
     entries: [
       {

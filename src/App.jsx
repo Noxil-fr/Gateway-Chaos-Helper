@@ -134,7 +134,7 @@ export default function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1>Gateway Chaos Helper <span className="version">v1.5</span><button className="patchnote-btn" onClick={() => setShowPatchNote(true)}>Read me</button></h1>
+        <h1>Gateway Chaos Helper <span className="version">v1.6</span><button className="patchnote-btn" onClick={() => setShowPatchNote(true)}>Read me</button></h1>
       </div>
 
       <FileUploader onParsed={handleParsed} />
@@ -169,7 +169,11 @@ export default function App() {
               visible={true}
             />
           )}
-          <LogIssuesPanel issues={logIssues} onOpenRequest={openRequestInTab} />
+          {/* Only the issues of the selected query type, e.g. GetRepairOrder errors stay out of SetRepairOrder */}
+          <LogIssuesPanel
+            issues={logIssues.filter(i => i._request?._queryType === activeQueryType)}
+            onOpenRequest={openRequestInTab}
+          />
         </div>
 
         <div className="results-section-header" ref={resultsRef}>

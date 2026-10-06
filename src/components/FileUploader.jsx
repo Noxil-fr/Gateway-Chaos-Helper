@@ -162,6 +162,13 @@ export default function FileUploader({ onParsed }) {
         obj._queryType = 'SetEvents'
         requests.push(obj)
       }
+
+      // Params is a plain string, not a JSON object: Call GetRepairOrder Params "004|558648"
+      if (line.includes('Call GetRepairOrder Params')) {
+        const match = line.match(/Call GetRepairOrder Params\s+"([^"]*)"/)
+        if (!match) continue
+        requests.push({ InternalFolderID: match[1], _timestamp: ts, _scope: scope, _queryType: 'GetRepairOrder' })
+      }
     }
 
     // Pass 2: match responses by scope
@@ -179,6 +186,12 @@ export default function FileUploader({ onParsed }) {
       if (req._scope) {
         if (responseMap[req._scope]) req._response = responseMap[req._scope]
         if (scopeLines[req._scope]) req._scopeLogs = scopeLines[req._scope]
+      }
+      // GetRepairOrder logs no response of its own: its last "Result {...}" line is the outcome
+      if (req._queryType === 'GetRepairOrder' && req._scopeLogs) {
+        const resultLog = req._scopeLogs.findLast(l => l.message.includes('Result {'))
+        const obj = resultLog && extractJson(resultLog.message, 'Result {')
+        if (obj) req._response = obj
       }
     }
 

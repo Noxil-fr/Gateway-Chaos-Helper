@@ -294,6 +294,8 @@ function SubTabViewer({ item }) {
 
   const hasResponse = !!item._response
   const hasLogs = item._scopeLogs && item._scopeLogs.length > 0
+  // GetRepairOrder only carries a folder ID: its log lines are the request, shown in place of the JSON
+  const logsAsRequest = item._queryType === 'GetRepairOrder'
   const isOk = item._response?.Status === 'OK'
   const navConfig = NAVIGATOR_CONFIGS[item._queryType] || null
   const jobs = navConfig ? (item[navConfig.jobsKey] || []) : []
@@ -328,17 +330,20 @@ function SubTabViewer({ item }) {
           Response
           {hasResponse && <span className={`viewer-tab-badge ${isOk ? 'ok' : 'fail'}`}>{isOk ? '✓' : '✗'}</span>}
         </button>
-        <button
-          className={`viewer-tab ${activeInner === 'logs' ? 'active' : ''}`}
-          onClick={() => setActiveInner('logs')}
-          disabled={!hasLogs}
-        >
-          Logs
-          {hasLogs && <span className="viewer-tab-count">{item._scopeLogs.length}</span>}
-        </button>
+        {!logsAsRequest && (
+          <button
+            className={`viewer-tab ${activeInner === 'logs' ? 'active' : ''}`}
+            onClick={() => setActiveInner('logs')}
+            disabled={!hasLogs}
+          >
+            Logs
+            {hasLogs && <span className="viewer-tab-count">{item._scopeLogs.length}</span>}
+          </button>
+        )}
       </div>
 
-      {activeInner === 'request' && (
+      {activeInner === 'request' && logsAsRequest && <LogsBlock logs={item._scopeLogs} />}
+      {activeInner === 'request' && !logsAsRequest && (
         <div className={hasJobs ? 'viewer-request-layout' : ''}>
           {hasJobs && <JobNavigator jobs={jobs} config={navConfig} onNavigate={handleNavigate} />}
           <JsonBlock obj={item} navTarget={navTarget} forceOpen={forceOpen} />
