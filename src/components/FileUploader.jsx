@@ -1,12 +1,61 @@
 import { useRef, useState } from 'react'
 import { normalizeErrorMessage } from '../utils/repairOrderErrors'
 
+// Shown while the (blocking) analysis runs: one is picked per file, the text cannot change until it ends
+const ANALYZING_QUOTES = [
+  'Searching the Jedi Archives…',
+  'Scanning the logs, Master Jedi…',
+  'Use the Force… the logs are being read',
+  'Calculating the jump to hyperspace…',
+  'These are not the requests you are looking for… just kidding, analyzing…',
+]
+
+// Blade color drawn per file, as "r,g,b" for the CSS glow
+const SABER_COLORS = ['138,180,248', '120,230,120', '255,80,90'] // blue, green, red
+
+// Hilt drawn left to right: pommel, ridged grip, activation box with its red button, flared emitter
+function SaberHilt() {
+  return (
+    <svg className="saber-hilt" viewBox="0 0 84 20" aria-hidden="true">
+      <defs>
+        <linearGradient id="saber-metal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#f2f4f7" />
+          <stop offset="0.45" stopColor="#a9afb8" />
+          <stop offset="1" stopColor="#4d525a" />
+        </linearGradient>
+        <linearGradient id="saber-dark" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#5a5f68" />
+          <stop offset="1" stopColor="#15171b" />
+        </linearGradient>
+      </defs>
+      {/* Pommel */}
+      <rect x="0" y="5" width="3" height="10" rx="1" fill="url(#saber-dark)" />
+      <rect x="3" y="4" width="5" height="12" rx="1" fill="url(#saber-metal)" />
+      {/* Grip and its black ridges */}
+      <rect x="8" y="5" width="28" height="10" fill="url(#saber-metal)" />
+      {[10, 14, 18, 22, 26, 30].map(x => <rect key={x} x={x} y="5" width="2.4" height="10" rx="0.6" fill="url(#saber-dark)" />)}
+      {/* Activation box */}
+      <rect x="36" y="3.5" width="18" height="13" rx="1" fill="url(#saber-metal)" />
+      <rect x="38" y="12" width="14" height="2" rx="0.6" fill="#22252a" />
+      <circle cx="45" cy="7.6" r="2" fill="#e05555" />
+      <circle cx="44.4" cy="7" r="0.6" fill="#ffd0d0" />
+      {/* Emitter: collar then flared shroud */}
+      <rect x="54" y="5" width="6" height="10" fill="url(#saber-dark)" />
+      <rect x="60" y="4" width="12" height="12" fill="url(#saber-metal)" />
+      <rect x="64" y="4" width="1.2" height="12" fill="#3a3e45" />
+      <polygon points="72,4 84,1.5 84,18.5 72,16" fill="url(#saber-metal)" />
+      <polygon points="80,2.3 84,1.5 84,18.5 80,17.7" fill="#2a2d33" />
+    </svg>
+  )
+}
+
 export default function FileUploader({ onParsed }) {
   const inputRef = useRef()
   const [filename, setFilename] = useState(null)
   const [stats, setStats] = useState(null)
   const [readError, setReadError] = useState(null)
   const [dragging, setDragging] = useState(false)
+  const [loading, setLoading] = useState(null) // null | { phase: 'reading', pct, color } | { phase: 'analyzing', quote, color }
 
   const extractTimestamp = (line) => {
     const match = line.match(/^(\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2})/)
@@ -236,32 +285,44 @@ export default function FileUploader({ onParsed }) {
   }
 
   const handleFile = (file) => {
-    if (!file) return
+    if (!file || loading) return
     setFilename(file.name)
     setStats(null)
     setReadError(null)
+    setLoading({ phase: 'reading', pct: 0, color: SABER_COLORS[Math.floor(Math.random() * SABER_COLORS.length)] })
     const sizeMB = Math.round(file.size / 1e6)
     const reader = new FileReader()
+    reader.onprogress = (e) => {
+      if (e.lengthComputable) setLoading(l => ({ ...l, phase: 'reading', pct: Math.round((e.loaded / e.total) * 100) }))
+    }
     reader.onload = (e) => {
-      let parsed
-      try {
-        parsed = parseLog(e.target.result)
-      } catch (err) {
-        // Very large files can exceed the browser's memory or string limits
-        setReadError(`Could not analyze this file (${sizeMB} MB): ${err.message}`)
-        return
-      }
-      const { results, firstTimestamp, lastTimestamp, logIssues } = parsed
-      const typeCounts = {}
-      for (const r of results) {
-        const qt = r._queryType || 'unknown'
-        typeCounts[qt] = (typeCounts[qt] || 0) + 1
-      }
-      setStats({ total: results.length, typeCounts })
-      onParsed(results, firstTimestamp, lastTimestamp, logIssues)
+      const text = e.target.result
+      setLoading(l => ({ ...l, phase: 'analyzing', quote: ANALYZING_QUOTES[Math.floor(Math.random() * ANALYZING_QUOTES.length)] }))
+      // parseLog blocks the page: let the "Analyzing" state paint first
+      requestAnimationFrame(() => setTimeout(() => {
+        let parsed
+        try {
+          parsed = parseLog(text)
+        } catch (err) {
+          // Very large files can exceed the browser's memory or string limits
+          setReadError(`Could not analyze this file (${sizeMB} MB): ${err.message}`)
+          setLoading(null)
+          return
+        }
+        const { results, firstTimestamp, lastTimestamp, logIssues } = parsed
+        const typeCounts = {}
+        for (const r of results) {
+          const qt = r._queryType || 'unknown'
+          typeCounts[qt] = (typeCounts[qt] || 0) + 1
+        }
+        setStats({ total: results.length, typeCounts })
+        setLoading(null)
+        onParsed(results, firstTimestamp, lastTimestamp, logIssues)
+      }, 0))
     }
     reader.onerror = () => {
       setReadError(`Could not read this file (${sizeMB} MB)${reader.error ? `: ${reader.error.message}` : ''}`)
+      setLoading(null)
     }
     reader.readAsText(file)
   }
@@ -275,15 +336,31 @@ export default function FileUploader({ onParsed }) {
 
   return (
     <div
-      className={`upload-zone ${dragging ? 'active' : ''}`}
-      onClick={() => inputRef.current.click()}
+      className={`upload-zone ${dragging ? 'active' : ''} ${loading ? 'loading' : ''}`}
+      onClick={() => { if (!loading) inputRef.current.click() }}
       onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
     >
       <input ref={inputRef} type="file" accept=".log,.txt" onChange={onInputChange} />
       <div>📂 Drop your <strong>.log</strong> DMS Gateway file here, or click to browse</div>
-      {filename && <div className="filename">{readError ? '❌' : '✅'} {filename}</div>}
+      {loading ? (
+        <div className="upload-loading" style={{ '--saber': loading.color }}>
+          {/* Lightsaber: the blade grows with the reading progress, then pulses while the analysis runs */}
+          <div className={`saber ${loading.phase}`}>
+            <SaberHilt />
+            <div className="saber-track">
+              <div className="saber-blade" style={{ width: loading.phase === 'reading' ? `${loading.pct}%` : '100%' }} />
+            </div>
+          </div>
+          <div className="upload-loading-text">
+            {loading.phase === 'reading' ? `Jumping to hyperspace… ${loading.pct}%` : loading.quote}
+          </div>
+          <div className="upload-loading-hint">
+            {loading.phase === 'reading' ? filename : 'Patience you must have, large files take several seconds.'}
+          </div>
+        </div>
+      ) : filename && <div className="filename">{readError ? '❌' : '✅'} {filename}</div>}
       {readError && <div className="inline-error">{readError}</div>}
       {stats !== null && (
         <div className="stats">

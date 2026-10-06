@@ -13,6 +13,10 @@ const NOTES = [
         fr: "Ajout du type de requête {blue|GetRepairOrder}. Ses erreurs du log s'affichent dans le bandeau des {yellow|warnings} quand il est sélectionné.",
         en: "Added the {blue|GetRepairOrder} query type. Its log errors appear in the {yellow|warnings} panel when it is selected.",
       },
+      {
+        fr: "La Force fait son apparition dans Gateway Chaos Helper...",
+        en: "The Force awakens in Gateway Chaos Helper...",
+      },
     ],
   },
   {

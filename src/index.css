@@ -1941,3 +1941,46 @@ span.patchnote-color-red { color: var(--pink); font-weight: 600; }
 span.patchnote-color-violet { color: #cba6f7; font-weight: 600; }
 span.patchnote-color-yellow { color: #f9e2af; font-weight: 600; }
 span.patchnote-color-blue { color: var(--blue); font-weight: 600; }
+
+/* ── File loading indicator (lightsaber) ────────────────── */
+div.upload-zone.loading { cursor: progress; }
+div.upload-loading {
+  --saber: 138,180,248; /* blade color, overridden per file */
+  margin-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+}
+div.saber { display: flex; align-items: center; width: min(360px, 85%); }
+svg.saber-hilt {
+  flex-shrink: 0;
+  width: 84px;
+  height: 20px;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));
+}
+div.saber-track { flex: 1; height: 6px; margin-left: -1px; }
+div.saber-blade {
+  position: relative;
+  height: 100%;
+  border-radius: 0 999px 999px 0;
+  background: #eef5ff;
+  box-shadow: 0 0 4px rgb(var(--saber)), 0 0 10px rgb(var(--saber)), 0 0 18px rgba(var(--saber),0.7);
+  transition: width 0.15s;
+}
+/* Glow pulse animates opacity only: browsers keep it running while the log analysis blocks the page */
+div.saber-blade::after {
+  content: '';
+  position: absolute;
+  inset: -6px -4px;
+  border-radius: 999px;
+  box-shadow: 0 0 22px 6px rgba(var(--saber),0.55);
+  opacity: 0;
+}
+div.saber.analyzing div.saber-blade::after {
+  animation: saber-hum 0.9s ease-in-out infinite alternate;
+  will-change: opacity;
+}
+@keyframes saber-hum { from { opacity: 0.15; } to { opacity: 1; } }
+div.upload-loading-text { font-size: 0.85rem; color: rgb(var(--saber)); letter-spacing: 0.02em; }
+div.upload-loading-hint { font-size: 0.75rem; color: var(--text3); }
